@@ -1,7 +1,6 @@
 # pdf_processor.py
-# An advanced PDF processing script that uses a hybrid approach:
-# 1. Tries intelligent direct text extraction for digitally native PDFs.
-# 2. Falls back to advanced OCR for scanned/image-based PDFs.
+# An advanced PDF processing script that uses a hybrid approach.
+# I have corrected the file path handling to prevent errors.
 
 import shutil
 import logging
@@ -60,7 +59,8 @@ def is_tesseract_installed():
 def is_pdf_locked(pdf_path: Path) -> bool:
     """Checks if a PDF is encrypted using PyMuPDF."""
     try:
-        with fitz.open(pdf_path) as doc:
+        # FIX: Convert Path object to string for robust file handling
+        with fitz.open(str(pdf_path)) as doc:
             if doc.is_encrypted:
                 logging.warning(f"'{pdf_path.name}' is password-protected.")
                 return True
@@ -77,7 +77,8 @@ def extract_text_with_hybrid_approach(pdf_path: Path) -> str:
     """
     full_text = ""
     try:
-        with fitz.open(pdf_path) as doc:
+        # FIX: Convert Path object to string for robust file handling
+        with fitz.open(str(pdf_path)) as doc:
             for i, page in enumerate(doc):
                 # --- Stage 1: Attempt Intelligent Direct Text Extraction ---
                 # Using "simple" preserves layout better than the default "text".
@@ -129,7 +130,7 @@ def main():
         logging.info(f"--- Processing '{pdf_path.name}' ---")
 
         if is_pdf_locked(pdf_path):
-            shutil.move(pdf_path, FAILED_LOCKED_DIR / pdf_path.name)
+            shutil.move(str(pdf_path), FAILED_LOCKED_DIR / pdf_path.name)
             continue
 
         extracted_text = extract_text_with_hybrid_approach(pdf_path)
@@ -139,11 +140,11 @@ def main():
             with open(text_file_path, "w", encoding="utf-8") as f:
                 f.write(extracted_text)
             
-            shutil.move(pdf_path, PROCESSED_DIR / pdf_path.name)
+            shutil.move(str(pdf_path), PROCESSED_DIR / pdf_path.name)
             logging.info(f"Successfully processed '{pdf_path.name}'.")
         else:
             logging.error(f"Failed to extract any text from '{pdf_path.name}'. Moving to failed folder.")
-            shutil.move(pdf_path, FAILED_OCR_DIR / pdf_path.name)
+            shutil.move(str(pdf_path), FAILED_OCR_DIR / pdf_path.name)
 
     logging.info("PDF processing pipeline finished.")
 

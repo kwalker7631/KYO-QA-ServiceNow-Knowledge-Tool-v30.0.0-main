@@ -1,4 +1,4 @@
-# ocr_utils.py - Enhanced OCR utilities with robust error handling
+# ocr_utils.py - Enhanced OCR utilities with robust error handling and corrected file path handling
 import fitz  # PyMuPDF
 import os
 from pathlib import Path
@@ -75,7 +75,8 @@ def check_pdf_protection(pdf_path):
     # Method 1: Try pikepdf first (most reliable for password detection)
     if PIKEPDF_AVAILABLE:
         try:
-            with pikepdf.open(pdf_path) as pdf:
+            # FIX: Convert Path object to string for robust file handling
+            with pikepdf.open(str(pdf_path)) as pdf:
                 if pdf.is_encrypted:
                     return True, "encrypted", "PDF is password-protected (detected by pikepdf)"
                 return False, "none", None
@@ -90,7 +91,8 @@ def check_pdf_protection(pdf_path):
     
     # Method 2: Try PyMuPDF as fallback
     try:
-        with fitz.open(pdf_path) as doc:
+        # FIX: Convert Path object to string for robust file handling
+        with fitz.open(str(pdf_path)) as doc:
             if doc.is_encrypted:
                 return True, "encrypted", "PDF is encrypted (detected by PyMuPDF)"
             if hasattr(doc, 'needs_pass') and doc.needs_pass:
@@ -128,7 +130,8 @@ def process_single_document(pdf_path):
         
         # Step 2: Try direct text extraction first
         try:
-            with fitz.open(pdf_path) as doc:
+            # FIX: Convert Path object to string for robust file handling
+            with fitz.open(str(pdf_path)) as doc:
                 if not doc.is_pdf:
                     return "corrupted", "File is not a valid PDF document", ""
                 
@@ -177,7 +180,8 @@ def _is_ocr_needed(pdf_path):
         if is_protected:
             raise PDFProtectionError(error_msg)
         
-        with fitz.open(pdf_path) as doc:
+        # FIX: Convert Path object to string for robust file handling
+        with fitz.open(str(pdf_path)) as doc:
             if not doc.is_pdf:
                 raise PDFCorruptionError(f"File {Path(pdf_path).name} is not a valid PDF")
             
@@ -218,7 +222,8 @@ def extract_text_with_ocr(pdf_path):
     pdf_path = Path(pdf_path)
     
     try:
-        with fitz.open(pdf_path) as doc:
+        # FIX: Convert Path object to string for robust file handling
+        with fitz.open(str(pdf_path)) as doc:
             for page_num, page in enumerate(doc):
                 try:
                     # Render page at high DPI for better OCR accuracy

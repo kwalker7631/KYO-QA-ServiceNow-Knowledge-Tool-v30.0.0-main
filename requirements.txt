@@ -1,21 +1,21 @@
-##Core Data & Excel
-pandas>=2.2.2
-openpyxl>=3.1.2
+## Core Data & Excel
+pandas>=2.2.3
+openpyxl>=3.1.5
 
-##PDF & Image Processing
-PyMuPDF>=1.24.3
-pikepdf>=8.0.0
-Pillow>=10.3.0
-opencv-python>=4.9.0
+## PDF & Image Processing  
+PyMuPDF>=1.24.10
+pikepdf>=9.1.0
+Pillow>=10.4.0
+opencv-python>=4.10.0
 numpy>=1.26.4
 
-##OCR
-pytesseract>=0.3.11
+## OCR
+pytesseract>=0.3.13
 
-##AI/LLM
-ollama>=0.1.2
+## AI/LLM
+ollama>=0.3.3
 
-##Utilities
+## Utilities
 colorama>=0.4.6
 python-dateutil>=2.9.0
 extract

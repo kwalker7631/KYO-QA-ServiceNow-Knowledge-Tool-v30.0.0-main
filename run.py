@@ -8,14 +8,13 @@ import threading
 
 # --- Configuration ---
 VENV_DIR = Path(__file__).parent / "venv"
-# Corrected syntax error on the line below
 REQUIREMENTS_FILE = Path(__file__).parent / "requirements.txt"
-MAIN_APP_SCRIPT = Path(__file__).parent / "kyo_qa_tool_app.py" # This can be renamed later if needed
+MAIN_APP_SCRIPT = Path(__file__).parent / "kyo_qa_tool_app.py"
 MIN_PYTHON_VERSION = (3, 9)
 
 # --- ANSI Colors for "Bling" ---
 class Colors:
-    KYOCERA_RED = '\033[38;2;227;26;47m' # The official Kyocera red
+    KYOCERA_RED = '\033[38;2;227;26;47m'  # The official Kyocera red
     GREEN = '\033[92m'
     YELLOW = '\033[93m'
     RED = '\033[91m'
