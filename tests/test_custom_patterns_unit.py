@@ -8,7 +8,8 @@ class TestCustomPatterns(unittest.TestCase):
         self.assertEqual(custom_patterns.MODEL_PATTERNS[0], r"\bFS-\d+[A-Z]*\b")
 
     def test_patterns_compile(self):
-        for pat in custom_patterns.MODEL_PATTERNS:
+        """Ensure both model and QA patterns compile."""
+        for pat in custom_patterns.MODEL_PATTERNS + custom_patterns.QA_NUMBER_PATTERNS:
             try:
                 re.compile(pat)
             except re.error as exc:
