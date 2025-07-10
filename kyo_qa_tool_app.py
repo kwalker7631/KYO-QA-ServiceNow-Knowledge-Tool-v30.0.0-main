@@ -291,11 +291,11 @@ class KyoQAToolApp(tk.Tk):
             while not self.response_queue.empty():
                 msg = self.response_queue.get_nowait()
                 mtype = msg.get("type")
-
-                if mtype == "log":
-                    self.log_message(msg.get("msg", ""))
+                if mtype == "log": self.log_message(msg.get("msg", ""))
                 elif mtype == "status":
                     self.status_current_file.set(msg.get("msg", ""))
+                    if msg.get("led"):
+                        self.set_led(msg.get("led"))
                 elif mtype == "review_item":
                     data = msg.get("data", {})
                     self.reviewable_files.append(data)
@@ -324,39 +324,22 @@ class KyoQAToolApp(tk.Tk):
         self.after(100, self.process_response_queue)
 
     def update_ui_for_start(self):
-        self.is_processing = True
-        self.is_paused = False
-        self.cancel_event.clear()
-        self.pause_event.clear()
-
-        counters = [
-            self.count_pass,
-            self.count_fail,
-            self.count_review,
-            self.count_ocr,
-            self.count_protected,
-            self.count_corrupted,
-            self.count_ocr_failed,
-            self.count_no_text,
-        ]
-        for var in counters:
-            var.set(0)
-
-        self.reviewable_files.clear()
-        self.review_tree.delete(*self.review_tree.get_children())
-        self.process_btn.config(state=tk.DISABLED)
-        self.rerun_btn.config(state=tk.DISABLED)
-        self.pause_btn.config(state=tk.NORMAL)
-        self.stop_btn.config(state=tk.NORMAL)
+        self.is_processing = True; self.is_paused = False
+        self.cancel_event.clear(); self.pause_event.clear()
+        for var in [self.count_pass, self.count_fail, self.count_review, self.count_ocr, self.count_protected, self.count_corrupted, self.count_ocr_failed, self.count_no_text]: var.set(0)
+        self.reviewable_files.clear(); self.review_tree.delete(*self.review_tree.get_children())
+        self.process_btn.config(state=tk.DISABLED); self.rerun_btn.config(state=tk.DISABLED)
+        self.open_result_btn.config(state=tk.DISABLED)
+        self.pause_btn.config(state=tk.NORMAL); self.stop_btn.config(state=tk.NORMAL)
+        self.set_led("Processing")
 
     def update_ui_for_finish(self, status):
         self.is_processing = False
         self.is_paused = False
         self.process_btn.config(state=tk.NORMAL)
-        if self.reviewable_files:
-            self.rerun_btn.config(state=tk.NORMAL)
-        self.pause_btn.config(state=tk.DISABLED)
-        self.stop_btn.config(state=tk.DISABLED)
+        if self.reviewable_files: self.rerun_btn.config(state=tk.NORMAL)
+        self.pause_btn.config(state=tk.DISABLED); self.stop_btn.config(state=tk.DISABLED)
+        self.set_led(status if status == "Complete" else "Error")
 
     def log_message(self, message, level="info"):
         self.log_text.config(state=tk.NORMAL)
@@ -415,7 +398,37 @@ class KyoQAToolApp(tk.Tk):
             open_file(self.result_file_path)
     def open_pattern_manager(self):
         ReviewWindow(self, "MODEL_PATTERNS", "Model Patterns", None)
-    def set_led(self, status): pass
+    def set_led(self, status):
+        """Update the small status LED and bar colour."""
+        color_map = {
+            "Ready": BRAND_COLORS.get("accent_blue"),
+            "Processing": BRAND_COLORS.get("success_green"),
+            "Paused": BRAND_COLORS.get("warning_orange"),
+            "OCR": BRAND_COLORS.get("warning_orange"),
+            "AI": BRAND_COLORS.get("accent_blue"),
+            "Saving": BRAND_COLORS.get("accent_blue"),
+            "Complete": BRAND_COLORS.get("success_green"),
+            "Cancelled": BRAND_COLORS.get("fail_red"),
+            "Error": BRAND_COLORS.get("fail_red"),
+        }
+
+        bg_map = {
+            "Processing": BRAND_COLORS.get("status_processing_bg"),
+            "OCR": BRAND_COLORS.get("status_ocr_bg"),
+            "AI": BRAND_COLORS.get("status_ai_bg"),
+        }
+
+        self.led_status_var.set("●")
+        fg = color_map.get(status, BRAND_COLORS.get("accent_blue"))
+        bg = bg_map.get(status, BRAND_COLORS.get("status_default_bg"))
+
+        self.status_frame.configure(background=bg)
+        self.led_label.configure(foreground=fg, background=bg)
+        for child in self.status_frame.winfo_children():
+            try:
+                child.configure(background=bg)
+            except Exception:
+                pass
 
 if __name__ == "__main__":
     try:
