@@ -1,8 +1,11 @@
 # test_custom_patterns.py - Complete test and fix script for custom patterns
+import pytest
 import sys
 from pathlib import Path
 import importlib
 import re
+
+pytest.skip("Interactive diagnostics skipped during automated tests", allow_module_level=True)
 
 def test_and_fix_custom_patterns():
     """Complete test and fix for custom patterns system."""
