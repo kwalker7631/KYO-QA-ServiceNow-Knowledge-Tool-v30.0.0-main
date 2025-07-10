@@ -1,11 +1,12 @@
 # test_custom_patterns.py - Complete test and fix script for custom patterns
+import pytest
 import sys
 from pathlib import Path
 import importlib
 import re
 import pytest
-
 @pytest.mark.skip("Diagnostic script - not run in automated tests")
+
 def test_and_fix_custom_patterns():
     """Complete test and fix for custom patterns system."""
     print("🔧 CUSTOM PATTERNS DIAGNOSTIC & FIX TOOL")
