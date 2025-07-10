@@ -121,7 +121,7 @@ class KyoQAToolApp(tk.Tk):
         # UI Vars
         self.selected_folder, self.selected_excel = tk.StringVar(), tk.StringVar()
         self.status_current_file, self.progress_value = tk.StringVar(value="Ready to process"), tk.DoubleVar()
-        self.time_remaining_var, self.led_status_var = tk.StringVar(), tk.StringVar(value="●")
+        self.time_remaining_var, self.led_status_var = tk.StringVar(), tk.StringVar(value="\u26AA")
 
         check_and_create_icons()
         self._load_icons()
@@ -377,7 +377,7 @@ class KyoQAToolApp(tk.Tk):
         self.process_btn.config(state=tk.NORMAL)
         if self.reviewable_files: self.rerun_btn.config(state=tk.NORMAL)
         self.pause_btn.config(state=tk.DISABLED); self.stop_btn.config(state=tk.DISABLED)
-        self.set_led(status if status == "Complete" else "Error")
+        self.set_led("Ready" if status == "Complete" else "Error")
 
     def log_message(self, message, level="info"):
         self.log_text.config(state=tk.NORMAL)
@@ -437,31 +437,23 @@ class KyoQAToolApp(tk.Tk):
     def open_pattern_manager(self):
         ReviewWindow(self, "MODEL_PATTERNS", "Model Patterns", None)
     def set_led(self, status):
-        """Update the small status LED and bar colour."""
-        color_map = {
-            "Ready": BRAND_COLORS.get("accent_blue"),
-            "Processing": BRAND_COLORS.get("success_green"),
-            "Paused": BRAND_COLORS.get("warning_orange"),
-            "OCR": BRAND_COLORS.get("warning_orange"),
-            "AI": BRAND_COLORS.get("accent_blue"),
-            "Saving": BRAND_COLORS.get("accent_blue"),
-            "Complete": BRAND_COLORS.get("success_green"),
-            "Cancelled": BRAND_COLORS.get("fail_red"),
-            "Error": BRAND_COLORS.get("fail_red"),
+        """Set the LED symbol and highlight colour based on status."""
+        symbol_map = {
+            "Ready": "\U0001F7E2",       # green circle
+            "Processing": "\U0001F535",  # blue circle
+            "OCR": "\U0001F7E0",        # orange circle
+            "Error": "\U0001F534",      # red circle
         }
-
         bg_map = {
             "Processing": BRAND_COLORS.get("status_processing_bg"),
             "OCR": BRAND_COLORS.get("status_ocr_bg"),
-            "AI": BRAND_COLORS.get("status_ai_bg"),
         }
 
-        self.led_status_var.set("●")
-        fg = color_map.get(status, BRAND_COLORS.get("accent_blue"))
-        bg = bg_map.get(status, BRAND_COLORS.get("status_default_bg"))
+        self.led_status_var.set(symbol_map.get(status, "\u26AA"))
 
+        bg = bg_map.get(status, BRAND_COLORS.get("status_default_bg"))
         self.status_frame.configure(background=bg)
-        self.led_label.configure(foreground=fg, background=bg)
+        self.led_label.configure(background=bg)
         for child in self.status_frame.winfo_children():
             try:
                 child.configure(background=bg)
