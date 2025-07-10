@@ -20,6 +20,8 @@ from gui_components import (
     create_process_controls
 )
 
+from summary_utils import build_summary_message
+
 logger = logging_utils.setup_logger("app")
 
 def get_led_colors(status):
