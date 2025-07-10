@@ -22,6 +22,24 @@ from gui_components import (
 
 logger = logging_utils.setup_logger("app")
 
+def get_led_colors(status):
+    """Return foreground and background colors for the status LED."""
+    shared_statuses = {
+        "Processing": (BRAND_COLORS.get("accent_blue"), BRAND_COLORS.get("status_processing_bg")),
+        "Saving": (BRAND_COLORS.get("accent_blue"), BRAND_COLORS.get("status_processing_bg")),
+    }
+    unique_statuses = {
+        "OCR": (BRAND_COLORS.get("accent_blue"), BRAND_COLORS.get("status_ocr_bg")),
+        "AI": (BRAND_COLORS.get("kyocera_red"), BRAND_COLORS.get("status_ai_bg")),
+        "Paused": (BRAND_COLORS.get("warning_orange"), BRAND_COLORS.get("status_default_bg")),
+        "Ready": ("gray", BRAND_COLORS.get("status_default_bg")),
+        "Complete": (BRAND_COLORS.get("success_green"), BRAND_COLORS.get("status_default_bg")),
+        "Cancelled": (BRAND_COLORS.get("warning_orange"), BRAND_COLORS.get("status_default_bg")),
+        "Error": (BRAND_COLORS.get("fail_red"), BRAND_COLORS.get("status_default_bg")),
+    }
+    mapping = {**shared_statuses, **unique_statuses}
+    return mapping.get(status, (BRAND_COLORS.get("kyocera_black"), BRAND_COLORS.get("status_default_bg")))
+
 def check_and_create_icons():
     """Auto-generate icons if they don't exist."""
     assets_dir = Path("assets")
