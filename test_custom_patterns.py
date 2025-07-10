@@ -3,6 +3,9 @@ import sys
 from pathlib import Path
 import importlib
 import re
+import pytest
+
+pytest.skip("Diagnostic script - skipping during automated tests", allow_module_level=True)
 
 def test_and_fix_custom_patterns():
     """Complete test and fix for custom patterns system."""
