@@ -1,49 +1,18 @@
+import pytest
+from pathlib import Path
+
 try:
     import pandas as pd
-except Exception:  # pragma: no cover - fallback stub
-    class _DF(list):
-        def to_dict(self, *_, **__):
-            return list(self)
-
-    class pd:
-        @staticmethod
-        def DataFrame(data):
-            return _DF(data)
-from pathlib import Path
-import sys
-from types import ModuleType
-openpyxl = ModuleType("openpyxl")
-styles_mod = ModuleType("openpyxl.styles")
-formatting_mod = ModuleType("openpyxl.formatting")
-rule_mod = ModuleType("openpyxl.formatting.rule")
-openpyxl.styles = styles_mod
-openpyxl.formatting = formatting_mod
-openpyxl.formatting.rule = rule_mod
-styles_mod.PatternFill = object
-styles_mod.Alignment = object
-rule_mod.FormulaRule = object
-openpyxl.utils = ModuleType("openpyxl.utils")
-openpyxl.utils.get_column_letter = lambda x: "A"
-openpyxl.worksheet = ModuleType("openpyxl.worksheet")
-openpyxl.worksheet.copier = ModuleType("openpyxl.worksheet.copier")
-openpyxl.worksheet.copier.WorksheetCopy = object
-sys.modules.setdefault("openpyxl", openpyxl)
-sys.modules.setdefault("openpyxl.styles", styles_mod)
-sys.modules.setdefault("openpyxl.formatting", formatting_mod)
-sys.modules.setdefault("openpyxl.formatting.rule", rule_mod)
-sys.modules.setdefault("openpyxl.utils", openpyxl.utils)
-sys.modules.setdefault("openpyxl.worksheet", openpyxl.worksheet)
-sys.modules.setdefault("openpyxl.worksheet.copier", openpyxl.worksheet.copier)
+except Exception:
+    pd = None
 
 try:
     from openpyxl import load_workbook
-except Exception:  # pragma: no cover - fallback stub
-    def load_workbook(path):
-        class _WB:
-            active = type("ws", (), {
-                "iter_rows": staticmethod(lambda **kwargs: [[type("cell", (), {"value": h})() for h in DEFAULT_TEMPLATE_HEADERS]])
-            })()
-        return _WB()
+except Exception:
+    load_workbook = None
+
+if pd is None or load_workbook is None:
+    pytest.skip("Required libraries not installed", allow_module_level=True)
 
 from excel_generator import generate_excel, DEFAULT_TEMPLATE_HEADERS
 
@@ -53,10 +22,27 @@ def test_generate_excel_headers(tmp_path):
         {"Short description": "Test", "Article body": "body"}
     ])
     output_file = tmp_path / "out.xlsx"
-    generate_excel(sample_df.to_dict("records"), output_file, None)
+    generate_excel(sample_df.to_dict("records"), output_file)
     assert output_file.exists()
 
     wb = load_workbook(output_file)
     ws = wb.active
     headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
     assert headers == DEFAULT_TEMPLATE_HEADERS
+
+def test_generate_excel_with_template(tmp_path):
+    sample_df = pd.DataFrame([
+        {"Short description": "Test", "Article body": "body"}
+    ])
+    output_file = tmp_path / "out_template.xlsx"
+    template = Path("Sample_Set/kb_knowledge_Template.xlsx")
+    generate_excel(sample_df.to_dict("records"), output_file, template)
+    assert output_file.exists()
+
+    wb = load_workbook(output_file)
+    ws = wb.active
+    headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+    assert headers == DEFAULT_TEMPLATE_HEADERS
+    assert ws.max_row == 2
+    sd_index = DEFAULT_TEMPLATE_HEADERS.index("Short description") + 1
+    assert ws.cell(row=2, column=sd_index).value == "Test"
