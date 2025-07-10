@@ -34,7 +34,7 @@ def get_led_colors(status):
         "OCR": (BRAND_COLORS.get("accent_blue"), BRAND_COLORS.get("status_ocr_bg")),
         "AI": (BRAND_COLORS.get("kyocera_red"), BRAND_COLORS.get("status_ai_bg")),
         "Paused": (BRAND_COLORS.get("warning_orange"), BRAND_COLORS.get("status_default_bg")),
-        "Ready": ("gray", BRAND_COLORS.get("status_default_bg")),
+        "Ready": (BRAND_COLORS.get("success_green"), BRAND_COLORS.get("status_default_bg")),
         "Complete": (BRAND_COLORS.get("success_green"), BRAND_COLORS.get("status_default_bg")),
         "Cancelled": (BRAND_COLORS.get("warning_orange"), BRAND_COLORS.get("status_default_bg")),
         "Error": (BRAND_COLORS.get("fail_red"), BRAND_COLORS.get("status_default_bg")),
@@ -439,7 +439,7 @@ class KyoQAToolApp(tk.Tk):
     def set_led(self, status):
         """Update the small status LED and bar colour."""
         color_map = {
-            "Ready": BRAND_COLORS.get("accent_blue"),
+        "Ready": BRAND_COLORS.get("success_green"),
             "Processing": BRAND_COLORS.get("success_green"),
             "Paused": BRAND_COLORS.get("warning_orange"),
             "OCR": BRAND_COLORS.get("warning_orange"),
