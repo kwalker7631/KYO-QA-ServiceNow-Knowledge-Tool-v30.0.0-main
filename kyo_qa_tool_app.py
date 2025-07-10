@@ -114,6 +114,7 @@ class KyoQAToolApp(tk.Tk):
         # State
         self.is_processing, self.is_paused, self.result_file_path, self.start_time, self.is_fullscreen = False, False, None, None, True
         self.last_run_info, self.reviewable_files, self.selected_files_list = {}, [], []
+        self.total_files = 0
         self.response_queue, self.cancel_event, self.pause_event = queue.Queue(), threading.Event(), threading.Event()
         # UI Vars
         self.selected_folder, self.selected_excel = tk.StringVar(), tk.StringVar()
@@ -130,6 +131,23 @@ class KyoQAToolApp(tk.Tk):
         self.bind_all("<Escape>", self.toggle_fullscreen)
         self.after(100, self.process_response_queue)
         self.set_led("Ready")
+
+    def _update_time_remaining(self):
+        processed = sum(v.get() for v in [
+            self.count_pass,
+            self.count_fail,
+            self.count_review,
+            self.count_protected,
+            self.count_corrupted,
+            self.count_ocr_failed,
+            self.count_no_text,
+        ])
+        remaining_seconds = get_remaining_seconds(self.start_time, self.total_files, processed)
+        mins, secs = divmod(remaining_seconds, 60)
+        if self.is_processing and remaining_seconds:
+            self.time_remaining_var.set(f"{mins}:{secs:02d} remaining")
+        elif not self.is_processing:
+            self.time_remaining_var.set("")
 
     def _load_icon(self, filename):
         try:
