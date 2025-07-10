@@ -30,7 +30,6 @@ def test_generate_excel_headers(tmp_path):
     headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
     assert headers == DEFAULT_TEMPLATE_HEADERS
 
-
 def test_generate_excel_with_template(tmp_path):
     sample_df = pd.DataFrame([
         {"Short description": "Test", "Article body": "body"}
