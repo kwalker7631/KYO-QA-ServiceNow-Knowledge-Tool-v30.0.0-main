@@ -246,11 +246,16 @@ QA_NUMBER_PATTERNS = [
     print("   4. Test patterns against sample text")
     print("   5. Save patterns and re-run processing")
 
-    assert len(issues_found) == 0
+    # Ensure we didn't hit any problems during the diagnostic run
+    # ``issues_found`` will contain details if anything went wrong.
+    assert not issues_found
 
 def test_custom_patterns():
     """Pytest wrapper to ensure diagnostic passes."""
-    assert run_custom_patterns_diagnostic() is True
+    # ``run_custom_patterns_diagnostic`` now performs its own assertion
+    # and does not return a value. We simply call it and let any
+    # assertion errors surface up through pytest.
+    run_custom_patterns_diagnostic()
 
 def create_sample_patterns():
     """Create some sample patterns for testing."""
@@ -308,7 +313,7 @@ if __name__ == "__main__":
     choice = input("\nEnter choice (1, 2, or 3): ").strip()
     
     if choice in ["1", "3"]:
-        success = run_custom_patterns_diagnostic()
+        run_custom_patterns_diagnostic()
         
     if choice in ["2", "3"]:
         if input("\nCreate sample patterns? (y/n): ").lower().startswith('y'):
