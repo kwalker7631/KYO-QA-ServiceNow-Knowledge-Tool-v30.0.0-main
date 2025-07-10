@@ -223,8 +223,22 @@ class KyoQAToolApp(tk.Tk):
             while not self.response_queue.empty():
                 msg = self.response_queue.get_nowait()
                 mtype = msg.get("type")
-                if mtype == "log": self.log_message(msg.get("msg", ""))
-                elif mtype == "status": self.status_current_file.set(msg.get("msg", ""))
+                if mtype == "log":
+                    self.log_message(msg.get("msg", ""))
+                elif mtype == "status":
+                    self.status_current_file.set(msg.get("msg", ""))
+                    if msg.get("led"):
+                        self.set_led(msg.get("led"))
+                elif mtype == "progress":
+                    current = msg.get("current", 0)
+                    total = msg.get("total", 1)
+                    if total:
+                        pct = (current / total) * 100
+                        self.progress_value.set(pct)
+                        if self.start_time and current:
+                            elapsed = time.time() - self.start_time
+                            remaining = elapsed * (total - current) / current
+                            self.time_remaining_var.set(f"{remaining:.1f}s left")
                 elif mtype == "review_item":
                     data = msg.get("data", {})
                     self.reviewable_files.append(data)
@@ -233,7 +247,10 @@ class KyoQAToolApp(tk.Tk):
                     status = msg.get("status", "Complete")
                     self.log_message(f"Job finished: {status}")
                     self.update_ui_for_finish(status)
-                elif mtype == "result_path": self.result_file_path = msg.get("path")
+                elif mtype == "result_path":
+                    self.result_file_path = msg.get("path")
+                    if self.result_file_path and Path(self.result_file_path).exists():
+                        self.open_result_btn.config(state=tk.NORMAL)
                 elif mtype == "increment_counter":
                     counter_name = f"count_{msg.get('counter')}"
                     if hasattr(self, counter_name):
@@ -294,7 +311,19 @@ class KyoQAToolApp(tk.Tk):
         if self.result_file_path: open_file(self.result_file_path)
     def open_pattern_manager(self):
         ReviewWindow(self, "MODEL_PATTERNS", "Model Patterns", None)
-    def set_led(self, status): pass
+    def set_led(self, status):
+        """Update the LED color based on a status string."""
+        colors = {
+            "Ready": BRAND_COLORS.get("success_green"),
+            "Processing": BRAND_COLORS.get("accent_blue"),
+            "OCR": BRAND_COLORS.get("warning_orange"),
+            "AI": BRAND_COLORS.get("highlight_blue"),
+            "Saving": BRAND_COLORS.get("accent_blue"),
+            "Paused": BRAND_COLORS.get("warning_orange"),
+            "Error": BRAND_COLORS.get("fail_red"),
+        }
+        color = colors.get(status, BRAND_COLORS.get("kyocera_black"))
+        self.led_label.config(foreground=color)
 
 if __name__ == "__main__":
     try:
