@@ -334,6 +334,15 @@ class KyoQAToolApp(tk.Tk):
                     self.status_current_file.set(msg.get("msg", ""))
                     if msg.get("led"):
                         self.set_led(msg.get("led"))
+                elif mtype == "progress":
+                    try:
+                        percent = msg.get("current", 0) / msg.get("total", 1) * 100
+                    except Exception:
+                        percent = 0
+                    self.progress_value.set(percent)
+                    if self.start_time:
+                        self.total_files = msg.get("total", self.total_files)
+                        self._update_time_remaining()
                 elif mtype == "review_item":
                     data = msg.get("data", {})
                     self.reviewable_files.append(data)
