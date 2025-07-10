@@ -309,7 +309,9 @@ def run_processing_job(job_info, progress_queue, cancel_event, pause_event):
             "tag": "info",
             "msg": f"Processing job started. Rerun: {is_rerun}"
         })
-        progress_queue.put({"type": "import_progress", "value": 10})
+        total_steps = 5  # Define the total number of steps in the workflow
+        current_step = 1  # Current step: Initial progress
+        progress_queue.put({"type": "import_progress", "value": int((current_step / total_steps) * 100)})
 
         # Handle Excel file cloning
         if is_rerun:
