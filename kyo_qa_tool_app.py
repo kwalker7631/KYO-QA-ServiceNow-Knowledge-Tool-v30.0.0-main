@@ -233,7 +233,9 @@ class KyoQAToolApp(tk.Tk):
                     status = msg.get("status", "Complete")
                     self.log_message(f"Job finished: {status}")
                     self.update_ui_for_finish(status)
-                elif mtype == "result_path": self.result_file_path = msg.get("path")
+                elif mtype == "result_path":
+                    self.result_file_path = msg.get("path")
+                    self.open_result_btn.config(state=tk.NORMAL)
                 elif mtype == "increment_counter":
                     counter_name = f"count_{msg.get('counter')}"
                     if hasattr(self, counter_name):
@@ -247,6 +249,7 @@ class KyoQAToolApp(tk.Tk):
         for var in [self.count_pass, self.count_fail, self.count_review, self.count_ocr, self.count_protected, self.count_corrupted, self.count_ocr_failed, self.count_no_text]: var.set(0)
         self.reviewable_files.clear(); self.review_tree.delete(*self.review_tree.get_children())
         self.process_btn.config(state=tk.DISABLED); self.rerun_btn.config(state=tk.DISABLED)
+        self.open_result_btn.config(state=tk.DISABLED)
         self.pause_btn.config(state=tk.NORMAL); self.stop_btn.config(state=tk.NORMAL)
 
     def update_ui_for_finish(self, status):
