@@ -60,6 +60,7 @@ def make_dummy_app():
         "count_no_text",
     ]:
         setattr(dummy, name, DummyVar(1))
+    dummy.progress_value = DummyVar(50)
     dummy.reviewable_files = [1]
     dummy.review_tree = DummyReviewTree()
     dummy.process_btn = DummyButton()
@@ -87,10 +88,7 @@ def test_update_ui_for_start_resets_state():
     assert app.count_pass.get() == 0
     assert app.review_tree.get_children() == []
 
-def test_update_ui_for_finish_sets_ready_led():
+def test_update_ui_for_start_resets_progress():
     app = make_dummy_app()
-    app.led_status_var = DummyVar()
-    app.status_frame = DummyButton()
-    app.led_label = DummyButton()
-    KyoQAToolApp.update_ui_for_finish(app, "Complete")
-    assert app.led_status_var.get() == "\U0001F7E2"
+    KyoQAToolApp.update_ui_for_start(app)
+    assert app.progress_value.get() == 0

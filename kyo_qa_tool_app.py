@@ -345,6 +345,10 @@ class KyoQAToolApp(tk.Tk):
                             data.get("reason", "N/A"),
                         ),
                     )
+                elif mtype == "progress":
+                    total = msg.get("total", 1) or 1
+                    current = msg.get("current", 0)
+                    self.progress_value.set((current / total) * 100)
                 elif mtype == "finish":
                     status = msg.get("status", "Complete")
                     self.log_message(f"Job finished: {status}")
@@ -369,6 +373,7 @@ class KyoQAToolApp(tk.Tk):
         self.process_btn.config(state=tk.DISABLED); self.rerun_btn.config(state=tk.DISABLED)
         self.open_result_btn.config(state=tk.DISABLED)
         self.pause_btn.config(state=tk.NORMAL); self.stop_btn.config(state=tk.NORMAL)
+        self.progress_value.set(0)
         self.set_led("Processing")
 
     def update_ui_for_finish(self, status):
@@ -437,20 +442,9 @@ class KyoQAToolApp(tk.Tk):
     def open_pattern_manager(self):
         ReviewWindow(self, "MODEL_PATTERNS", "Model Patterns", None)
     def set_led(self, status):
-        """Set the LED symbol and highlight colour based on status."""
-        symbol_map = {
-            "Ready": "\U0001F7E2",       # green circle
-            "Processing": "\U0001F535",  # blue circle
-            "OCR": "\U0001F7E0",        # orange circle
-            "Error": "\U0001F534",      # red circle
-        }
-        bg_map = {
-            "Processing": BRAND_COLORS.get("status_processing_bg"),
-            "OCR": BRAND_COLORS.get("status_ocr_bg"),
-        }
-
-        self.led_status_var.set(symbol_map.get(status, "\u26AA"))
-
+        """Update the small status LED icon and background colour."""
+        self.led_status_var.set("●")
+        fg, bg = get_led_colors(status)
         bg = bg_map.get(status, BRAND_COLORS.get("status_default_bg"))
         self.status_frame.configure(background=bg)
         self.led_label.configure(background=bg)
