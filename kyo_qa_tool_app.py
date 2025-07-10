@@ -22,6 +22,21 @@ from gui_components import (
 
 logger = logging_utils.setup_logger("app")
 
+def get_led_colors(status):
+    """Return foreground and background colors for the status LED."""
+    mapping = {
+        "Processing": (BRAND_COLORS.get("accent_blue"), BRAND_COLORS.get("status_processing_bg")),
+        "OCR": (BRAND_COLORS.get("accent_blue"), BRAND_COLORS.get("status_ocr_bg")),
+        "AI": (BRAND_COLORS.get("kyocera_red"), BRAND_COLORS.get("status_ai_bg")),
+        "Saving": (BRAND_COLORS.get("accent_blue"), BRAND_COLORS.get("status_processing_bg")),
+        "Paused": (BRAND_COLORS.get("warning_orange"), BRAND_COLORS.get("status_default_bg")),
+        "Ready": ("gray", BRAND_COLORS.get("status_default_bg")),
+        "Complete": (BRAND_COLORS.get("success_green"), BRAND_COLORS.get("status_default_bg")),
+        "Cancelled": (BRAND_COLORS.get("warning_orange"), BRAND_COLORS.get("status_default_bg")),
+        "Error": (BRAND_COLORS.get("fail_red"), BRAND_COLORS.get("status_default_bg")),
+    }
+    return mapping.get(status, (BRAND_COLORS.get("kyocera_black"), BRAND_COLORS.get("status_default_bg")))
+
 def check_and_create_icons():
     """Auto-generate icons if they don't exist."""
     assets_dir = Path("assets")
@@ -223,8 +238,12 @@ class KyoQAToolApp(tk.Tk):
             while not self.response_queue.empty():
                 msg = self.response_queue.get_nowait()
                 mtype = msg.get("type")
-                if mtype == "log": self.log_message(msg.get("msg", ""))
-                elif mtype == "status": self.status_current_file.set(msg.get("msg", ""))
+                if mtype == "log":
+                    self.log_message(msg.get("msg", ""))
+                elif mtype == "status":
+                    self.status_current_file.set(msg.get("msg", ""))
+                    if msg.get("led"):
+                        self.set_led(msg.get("led"))
                 elif mtype == "review_item":
                     data = msg.get("data", {})
                     self.reviewable_files.append(data)
@@ -248,12 +267,14 @@ class KyoQAToolApp(tk.Tk):
         self.reviewable_files.clear(); self.review_tree.delete(*self.review_tree.get_children())
         self.process_btn.config(state=tk.DISABLED); self.rerun_btn.config(state=tk.DISABLED)
         self.pause_btn.config(state=tk.NORMAL); self.stop_btn.config(state=tk.NORMAL)
+        self.set_led("Processing")
 
     def update_ui_for_finish(self, status):
         self.is_processing = False; self.is_paused = False
         self.process_btn.config(state=tk.NORMAL)
         if self.reviewable_files: self.rerun_btn.config(state=tk.NORMAL)
         self.pause_btn.config(state=tk.DISABLED); self.stop_btn.config(state=tk.DISABLED)
+        self.set_led(status)
 
     def log_message(self, message, level="info"):
         self.log_text.config(state=tk.NORMAL)
@@ -288,13 +309,22 @@ class KyoQAToolApp(tk.Tk):
         if not self.is_processing: return
         self.is_paused = not self.is_paused
         self.pause_event.set() if self.is_paused else self.pause_event.clear()
+        self.set_led("Paused" if self.is_paused else "Processing")
     def stop_processing(self):
         if self.is_processing: self.cancel_event.set()
     def open_result(self):
         if self.result_file_path: open_file(self.result_file_path)
     def open_pattern_manager(self):
         ReviewWindow(self, "MODEL_PATTERNS", "Model Patterns", None)
-    def set_led(self, status): pass
+    def set_led(self, status):
+        """Update LED color and status bar background."""
+        fg, bg = get_led_colors(status)
+        self.style.configure("Status.TFrame", background=bg)
+        self.style.configure("Status.TLabel", background=bg)
+        self.style.configure("LED.TLabel", background=bg)
+        self.status_frame.configure(style="Status.TFrame")
+        self.led_label.configure(foreground=fg)
+
 
 if __name__ == "__main__":
     try:
