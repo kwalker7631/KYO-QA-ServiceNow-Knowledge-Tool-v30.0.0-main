@@ -5,6 +5,8 @@ import pandas as pd
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.formatting.rule import FormulaRule
 import openpyxl
+from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.worksheet.copier import WorksheetCopy
 import re
 
 from logging_utils import setup_logger, log_info, log_error
@@ -159,9 +161,23 @@ def generate_excel(all_results, output_path, template_path):
             columns=[c for c in internal_cols if c in final_df.columns], errors="ignore"
         )
 
-        with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
-            df_to_save.to_excel(writer, index=False, sheet_name="ServiceNow Import")
-            apply_excel_styles(writer.sheets["ServiceNow Import"], df_sanitized)
+        template_wb = openpyxl.load_workbook(template_path)
+        template_ws = template_wb.worksheets[0]
+
+        workbook = openpyxl.Workbook()
+        if workbook.sheetnames:
+            workbook.remove(workbook[workbook.sheetnames[0]])
+        copied_ws = workbook.create_sheet(template_ws.title)
+        WorksheetCopy(template_ws, copied_ws).copy_worksheet()
+
+        for r_idx, row in enumerate(
+            dataframe_to_rows(df_to_save, index=False, header=True), start=1
+        ):
+            for c_idx, value in enumerate(row, start=1):
+                copied_ws.cell(row=r_idx, column=c_idx, value=value)
+
+        apply_excel_styles(copied_ws, df_sanitized)
+        workbook.save(output_path)
 
         log_info(logger, f"Successfully created formatted Excel file: {output_path}")
         return str(output_path)
