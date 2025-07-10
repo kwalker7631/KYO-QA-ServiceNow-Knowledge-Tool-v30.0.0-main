@@ -121,7 +121,7 @@ class KyoQAToolApp(tk.Tk):
         # UI Vars
         self.selected_folder, self.selected_excel = tk.StringVar(), tk.StringVar()
         self.status_current_file, self.progress_value = tk.StringVar(value="Ready to process"), tk.DoubleVar()
-        self.time_remaining_var, self.led_status_var = tk.StringVar(), tk.StringVar(value="●")
+        self.time_remaining_var, self.led_status_var = tk.StringVar(), tk.StringVar(value="\u26AA")
 
         check_and_create_icons()
         self._load_icons()
@@ -382,7 +382,7 @@ class KyoQAToolApp(tk.Tk):
         self.process_btn.config(state=tk.NORMAL)
         if self.reviewable_files: self.rerun_btn.config(state=tk.NORMAL)
         self.pause_btn.config(state=tk.DISABLED); self.stop_btn.config(state=tk.DISABLED)
-        self.set_led(status if status == "Complete" else "Error")
+        self.set_led("Ready" if status == "Complete" else "Error")
 
     def log_message(self, message, level="info"):
         self.log_text.config(state=tk.NORMAL)
@@ -445,9 +445,9 @@ class KyoQAToolApp(tk.Tk):
         """Update the small status LED icon and background colour."""
         self.led_status_var.set("●")
         fg, bg = get_led_colors(status)
-
+        bg = bg_map.get(status, BRAND_COLORS.get("status_default_bg"))
         self.status_frame.configure(background=bg)
-        self.led_label.configure(foreground=fg, background=bg)
+        self.led_label.configure(background=bg)
         for child in self.status_frame.winfo_children():
             try:
                 child.configure(background=bg)
