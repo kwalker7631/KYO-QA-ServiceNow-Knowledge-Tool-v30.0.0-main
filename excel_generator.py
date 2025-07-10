@@ -144,7 +144,7 @@ class ExcelWriter:
         with pd.ExcelWriter(self.path, engine="openpyxl") as writer:
             df.to_excel(writer, index=False, sheet_name="ServiceNow Import")
             apply_excel_styles(writer.sheets["ServiceNow Import"], df)
-            writer.save()
+            writer.save()  # persist workbook after applying styles
 
 def generate_excel(all_results, output_path, template_path=None):
     """Generate a formatted Excel file for ServiceNow imports.
