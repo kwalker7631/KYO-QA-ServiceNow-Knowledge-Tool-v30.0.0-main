@@ -22,6 +22,18 @@ from gui_components import (
 
 logger = logging_utils.setup_logger("app")
 
+
+def get_remaining_seconds(start_time, total_files, processed_files, now=None):
+    """Estimate remaining seconds for processing job."""
+    if not start_time or processed_files == 0 or total_files == 0:
+        return 0
+    if now is None:
+        now = time.time()
+    elapsed = now - start_time
+    avg_per_file = elapsed / processed_files
+    remaining_files = max(total_files - processed_files, 0)
+    return max(int(avg_per_file * remaining_files), 0)
+
 def check_and_create_icons():
     """Auto-generate icons if they don't exist."""
     assets_dir = Path("assets")
@@ -73,6 +85,7 @@ class KyoQAToolApp(tk.Tk):
         # State
         self.is_processing, self.is_paused, self.result_file_path, self.start_time, self.is_fullscreen = False, False, None, None, True
         self.last_run_info, self.reviewable_files, self.selected_files_list = {}, [], []
+        self.total_files = 0
         self.response_queue, self.cancel_event, self.pause_event = queue.Queue(), threading.Event(), threading.Event()
         # UI Vars
         self.selected_folder, self.selected_excel = tk.StringVar(), tk.StringVar()
@@ -89,6 +102,23 @@ class KyoQAToolApp(tk.Tk):
         self.bind_all("<Escape>", self.toggle_fullscreen)
         self.after(100, self.process_response_queue)
         self.set_led("Ready")
+
+    def _update_time_remaining(self):
+        processed = sum(v.get() for v in [
+            self.count_pass,
+            self.count_fail,
+            self.count_review,
+            self.count_protected,
+            self.count_corrupted,
+            self.count_ocr_failed,
+            self.count_no_text,
+        ])
+        remaining_seconds = get_remaining_seconds(self.start_time, self.total_files, processed)
+        mins, secs = divmod(remaining_seconds, 60)
+        if self.is_processing and remaining_seconds:
+            self.time_remaining_var.set(f"{mins}:{secs:02d} remaining")
+        elif not self.is_processing:
+            self.time_remaining_var.set("")
 
     def _load_icon(self, filename):
         try:
@@ -198,6 +228,11 @@ class KyoQAToolApp(tk.Tk):
             return messagebox.showwarning("Input Missing", "Please select both a base Excel file and a folder/files to process.")
         job = job or {"excel_path": excel_path, "input_path": input_path}
         self.last_run_info = job; job["is_rerun"] = is_rerun
+        inp = job["input_path"]
+        if isinstance(inp, list):
+            self.total_files = len(inp)
+        else:
+            self.total_files = len(list(Path(inp).glob("*.pdf")))
         self.update_ui_for_start(); self.log_message("Starting processing job..."); self.start_time = time.time()
         threading.Thread(target=run_processing_job, args=(job, self.response_queue, self.cancel_event, self.pause_event), daemon=True).start()
 
@@ -233,12 +268,27 @@ class KyoQAToolApp(tk.Tk):
                     status = msg.get("status", "Complete")
                     self.log_message(f"Job finished: {status}")
                     self.update_ui_for_finish(status)
+                elif mtype == "file_complete":
+                    status = msg.get("status", "")
+                    mapping = {
+                        "Pass": self.count_pass,
+                        "Fail": self.count_fail,
+                        "Needs Review": self.count_review,
+                        "Protected": self.count_protected,
+                        "Corrupted": self.count_corrupted,
+                        "OCR Failed": self.count_ocr_failed,
+                        "No Text": self.count_no_text,
+                    }
+                    var = mapping.get(status)
+                    if var:
+                        var.set(var.get() + 1)
                 elif mtype == "result_path": self.result_file_path = msg.get("path")
                 elif mtype == "increment_counter":
                     counter_name = f"count_{msg.get('counter')}"
                     if hasattr(self, counter_name):
                         getattr(self, counter_name).set(getattr(self, counter_name).get() + 1)
         except queue.Empty: pass
+        self._update_time_remaining()
         self.after(100, self.process_response_queue)
 
     def update_ui_for_start(self):
@@ -248,12 +298,14 @@ class KyoQAToolApp(tk.Tk):
         self.reviewable_files.clear(); self.review_tree.delete(*self.review_tree.get_children())
         self.process_btn.config(state=tk.DISABLED); self.rerun_btn.config(state=tk.DISABLED)
         self.pause_btn.config(state=tk.NORMAL); self.stop_btn.config(state=tk.NORMAL)
+        self.time_remaining_var.set("")
 
     def update_ui_for_finish(self, status):
         self.is_processing = False; self.is_paused = False
         self.process_btn.config(state=tk.NORMAL)
         if self.reviewable_files: self.rerun_btn.config(state=tk.NORMAL)
         self.pause_btn.config(state=tk.DISABLED); self.stop_btn.config(state=tk.DISABLED)
+        self.time_remaining_var.set("")
 
     def log_message(self, message, level="info"):
         self.log_text.config(state=tk.NORMAL)
