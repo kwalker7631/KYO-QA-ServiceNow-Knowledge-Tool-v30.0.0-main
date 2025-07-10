@@ -31,5 +31,15 @@ def test_set_led_processing():
     app.status_frame = DummyWidget()
     KyoQAToolApp.set_led(app, "Processing")
     assert app.led_status_var.get() == "●"
-    assert app.led_label.config_called["foreground"] == BRAND_COLORS["success_green"]
+    assert app.led_label.config_called["foreground"] == BRAND_COLORS["accent_blue"]
     assert app.status_frame.config_called["background"] == BRAND_COLORS["status_processing_bg"]
+
+def test_set_led_error():
+    app = types.SimpleNamespace()
+    app.led_status_var = DummyVar()
+    app.led_label = DummyWidget()
+    app.status_frame = DummyWidget()
+    KyoQAToolApp.set_led(app, "Error")
+    assert app.led_status_var.get() == "●"
+    assert app.led_label.config_called["foreground"] == BRAND_COLORS["fail_red"]
+    assert app.status_frame.config_called["background"] == BRAND_COLORS["status_default_bg"]

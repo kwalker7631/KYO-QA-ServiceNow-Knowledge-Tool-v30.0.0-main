@@ -19,6 +19,13 @@ class TestLEDColors(unittest.TestCase):
         self.assertEqual(fg, BRAND_COLORS["kyocera_black"])
         self.assertEqual(bg, BRAND_COLORS["status_default_bg"])
 
+    def test_ready_and_error(self):
+        fg_ready, _ = get_led_colors("Ready")
+        self.assertEqual(fg_ready, BRAND_COLORS["success_green"])
+
+        fg_error, _ = get_led_colors("Error")
+        self.assertEqual(fg_error, BRAND_COLORS["fail_red"])
+
 if __name__ == "__main__":
     unittest.main()
 

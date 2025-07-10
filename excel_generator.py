@@ -5,8 +5,6 @@ import pandas as pd
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.formatting.rule import FormulaRule
 import openpyxl
-from openpyxl.utils.dataframe import dataframe_to_rows
-from openpyxl.worksheet.copier import WorksheetCopy
 import re
 
 from logging_utils import setup_logger, log_info, log_error
@@ -146,9 +144,16 @@ class ExcelWriter:
         with pd.ExcelWriter(self.path, engine="openpyxl") as writer:
             df.to_excel(writer, index=False, sheet_name="ServiceNow Import")
             apply_excel_styles(writer.sheets["ServiceNow Import"], df)
-            writer.save()
+            writer.save()  # persist workbook after applying styles
 
-def generate_excel(all_results, output_path, template_path):
+def generate_excel(all_results, output_path, template_path=None):
+    """Generate a formatted Excel file for ServiceNow imports.
+
+    If ``template_path`` is provided an existing workbook is cloned and the
+    DataFrame is written into that workbook preserving its formatting.  When no
+    template is supplied, a fresh workbook is created instead.
+    """
+
     try:
         if not all_results:
             raise ExcelGenerationError("No data to generate.")
@@ -167,10 +172,24 @@ def generate_excel(all_results, output_path, template_path):
             columns=[c for c in internal_cols if c in final_df.columns], errors="ignore"
         )
 
-        with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
-            df_to_save.to_excel(writer, index=False, sheet_name="ServiceNow Import")
-            apply_excel_styles(writer.sheets["ServiceNow Import"], df_sanitized)
-            writer.save()
+        if template_path:
+            wb = openpyxl.load_workbook(template_path)
+            ws = wb.active
+            # remove any existing data rows (keep headers if present)
+            if ws.max_row > 1:
+                ws.delete_rows(2, ws.max_row - 1)
+            for r_idx, row in enumerate(
+                dataframe_to_rows(df_to_save, index=False, header=True), start=1
+            ):
+                for c_idx, value in enumerate(row, start=1):
+                    ws.cell(row=r_idx, column=c_idx, value=value)
+            apply_excel_styles(ws, df_sanitized)
+            wb.save(output_path)
+        else:
+            with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
+                df_to_save.to_excel(writer, index=False, sheet_name="ServiceNow Import")
+                apply_excel_styles(writer.sheets["ServiceNow Import"], df_sanitized)
+                writer.save()
 
         log_info(logger, f"Successfully created formatted Excel file: {output_path}")
         return str(output_path)

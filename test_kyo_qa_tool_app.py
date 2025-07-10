@@ -34,6 +34,10 @@ class DummyButton:
         self.kwargs = {}
     def config(self, **kwargs):
         self.kwargs.update(kwargs)
+    def configure(self, **kwargs):
+        self.kwargs.update(kwargs)
+    def winfo_children(self):
+        return []
 
 class DummyReviewTree:
     def __init__(self):
@@ -56,16 +60,22 @@ def make_dummy_app():
         "count_no_text",
     ]:
         setattr(dummy, name, DummyVar(1))
+    dummy.progress_value = DummyVar(50)
     dummy.reviewable_files = [1]
     dummy.review_tree = DummyReviewTree()
     dummy.process_btn = DummyButton()
     dummy.rerun_btn = DummyButton()
+    dummy.open_result_btn = DummyButton()
     dummy.pause_btn = DummyButton()
     dummy.stop_btn = DummyButton()
+    dummy.status_frame = DummyButton()
+    dummy.led_label = DummyButton()
+    dummy.led_status_var = DummyVar()
     dummy.cancel_event = types.SimpleNamespace(clear=lambda: None)
     dummy.pause_event = types.SimpleNamespace(clear=lambda: None)
     dummy.is_processing = False
     dummy.is_paused = True
+    dummy.set_led = KyoQAToolApp.set_led.__get__(dummy)
     return dummy
 
 def test_update_ui_for_start_resets_state():
@@ -77,3 +87,8 @@ def test_update_ui_for_start_resets_state():
     assert app.pause_btn.kwargs["state"] == tk.NORMAL
     assert app.count_pass.get() == 0
     assert app.review_tree.get_children() == []
+
+def test_update_ui_for_start_resets_progress():
+    app = make_dummy_app()
+    KyoQAToolApp.update_ui_for_start(app)
+    assert app.progress_value.get() == 0
