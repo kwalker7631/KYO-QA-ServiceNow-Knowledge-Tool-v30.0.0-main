@@ -5,6 +5,8 @@ import pandas as pd
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.formatting.rule import FormulaRule
 import openpyxl
+from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.worksheet.copier import WorksheetCopy
 import re
 
 from logging_utils import setup_logger, log_info, log_error
@@ -146,7 +148,6 @@ class ExcelWriter:
             apply_excel_styles(writer.sheets["ServiceNow Import"], df)
             writer.save()
 
-
 def generate_excel(all_results, output_path, template_path):
     try:
         if not all_results:
@@ -176,6 +177,3 @@ def generate_excel(all_results, output_path, template_path):
     except Exception as e:  # pragma: no cover - log and raise
         log_error(logger, f"Excel generation failed: {e}")
         raise ExcelGenerationError(f"Failed to generate Excel file: {e}")
-
-
-
