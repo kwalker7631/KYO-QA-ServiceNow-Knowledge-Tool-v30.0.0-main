@@ -1,6 +1,18 @@
-import pandas as pd
+import pytest
 from pathlib import Path
-from openpyxl import load_workbook
+
+try:
+    import pandas as pd
+except Exception:
+    pd = None
+
+try:
+    from openpyxl import load_workbook
+except Exception:
+    load_workbook = None
+
+if pd is None or load_workbook is None:
+    pytest.skip("Required libraries not installed", allow_module_level=True)
 
 from excel_generator import generate_excel, DEFAULT_TEMPLATE_HEADERS
 
