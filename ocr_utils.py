@@ -248,7 +248,11 @@ def extract_text_with_ocr(pdf_path):
                     denoised = cv2.medianBlur(binary_img, 3)
                     
                     # OCR with optimized settings
-                    custom_config = r'--oem 3 --psm 6 -c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,;:!?-_()[]{}@#$%^&*+=<>/\|"'''
+                    custom_config = (
+                        r"--oem 3 --psm 6 "
+                        r"-c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                        r"abcdefghijklmnopqrstuvwxyz.,;:!?-_()[]{}@#$%^&*+=<>/\\|\""
+                    )
                     page_text = pytesseract.image_to_string(denoised, lang='eng', config=custom_config)
                     
                     if page_text.strip():
