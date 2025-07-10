@@ -15,10 +15,10 @@ class TestCustomPatterns(unittest.TestCase):
             except re.error as exc:
                 self.fail(f"Pattern {pat} failed to compile: {exc}")
 
-    def test_qa_patterns_present(self):
-        """Check that QA patterns list is not empty."""
-        self.assertGreater(len(custom_patterns.QA_NUMBER_PATTERNS), 0)
-
+    def test_no_double_escaping(self):
+        """Ensure patterns do not contain double backslashes."""
+        for pat in custom_patterns.MODEL_PATTERNS:
+            self.assertNotIn("\\\\b", pat)
 
 if __name__ == "__main__":
     unittest.main()
