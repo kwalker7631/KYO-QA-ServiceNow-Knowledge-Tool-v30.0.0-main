@@ -75,6 +75,10 @@ def sanitize_for_excel(value):
 
 
 def apply_excel_styles(worksheet, df):
+    """Apply formatting and color-coding to the worksheet.
+
+    The DataFrame's index is reset to ensure rows line up with Excel rows
+    after any filtering or reordering operations."""
     log_info(logger, "Applying formatting and conditional coloring...")
     header_font = Font(bold=True)
     status_colors = {
@@ -84,11 +88,13 @@ def apply_excel_styles(worksheet, df):
         "Success": SUCCESS_FILL,
     }
 
-    for index, data_row in df.iterrows():
+    df = df.reset_index(drop=True)
+
+    for row_idx, data_row in df.iterrows():
         status = data_row.get("processing_status", "Success")
         fill_color = status_colors.get(status, SUCCESS_FILL)
-        if fill_color.fill_type:
-            for cell in worksheet[index + 2]:
+        if fill_color.fill_type and (row_idx + 2) <= worksheet.max_row:
+            for cell in worksheet[row_idx + 2]:
                 cell.fill = fill_color
 
     for cell in worksheet[1]:
@@ -140,7 +146,7 @@ class ExcelWriter:
         with pd.ExcelWriter(self.path, engine="openpyxl") as writer:
             df.to_excel(writer, index=False, sheet_name="ServiceNow Import")
             apply_excel_styles(writer.sheets["ServiceNow Import"], df)
-
+            writer.save()
 
 def generate_excel(all_results, output_path, template_path):
     try:
@@ -161,29 +167,13 @@ def generate_excel(all_results, output_path, template_path):
             columns=[c for c in internal_cols if c in final_df.columns], errors="ignore"
         )
 
-        template_wb = openpyxl.load_workbook(template_path)
-        template_ws = template_wb.worksheets[0]
-
-        workbook = openpyxl.Workbook()
-        if workbook.sheetnames:
-            workbook.remove(workbook[workbook.sheetnames[0]])
-        copied_ws = workbook.create_sheet(template_ws.title)
-        WorksheetCopy(template_ws, copied_ws).copy_worksheet()
-
-        for r_idx, row in enumerate(
-            dataframe_to_rows(df_to_save, index=False, header=True), start=1
-        ):
-            for c_idx, value in enumerate(row, start=1):
-                copied_ws.cell(row=r_idx, column=c_idx, value=value)
-
-        apply_excel_styles(copied_ws, df_sanitized)
-        workbook.save(output_path)
+        with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
+            df_to_save.to_excel(writer, index=False, sheet_name="ServiceNow Import")
+            apply_excel_styles(writer.sheets["ServiceNow Import"], df_sanitized)
+            writer.save()
 
         log_info(logger, f"Successfully created formatted Excel file: {output_path}")
         return str(output_path)
     except Exception as e:  # pragma: no cover - log and raise
         log_error(logger, f"Excel generation failed: {e}")
         raise ExcelGenerationError(f"Failed to generate Excel file: {e}")
-
-
-

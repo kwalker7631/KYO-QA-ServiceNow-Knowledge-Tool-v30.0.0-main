@@ -132,7 +132,7 @@ class ReviewWindow(tk.Toplevel):
     def save_all_patterns(self):
         patterns = self.pattern_listbox.get(0, tk.END)
         # Construct the file content, saving each pattern as a raw string literal
-        file_content = f"# custom_patterns.py\n# This file is auto-generated.\n\n"
+        file_content = "# custom_patterns.py\n# This file is auto-generated.\n\n"
         file_content += f"{self.pattern_type} = [\n"
         for p in patterns:
             # This ensures the pattern is written as r'...' which is what Python needs

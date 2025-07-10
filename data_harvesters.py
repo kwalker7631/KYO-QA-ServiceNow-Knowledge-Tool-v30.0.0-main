@@ -43,7 +43,7 @@ QA_NUMBER_PATTERNS = [
 '''
         try:
             custom_patterns_path.write_text(default_content, encoding='utf-8')
-            print(f"✅ Created enhanced custom_patterns.py with correct default patterns")
+            print("✅ Created enhanced custom_patterns.py with correct default patterns")
         except Exception as e:
             print(f"❌ Failed to create custom_patterns.py: {e}")
             return False
@@ -154,7 +154,7 @@ def harvest_models(text: str, filename: str) -> list:
     if found_models:
         print(f"✅ Found {len(found_models)} valid models: {', '.join(found_models)}")
     else:
-        print(f"❌ No valid models found after filtering.")
+        print("❌ No valid models found after filtering.")
         text_sample = text[:200].replace('\n', ' ').strip()
         print(f"   Text sample: {text_sample}...")
     
@@ -211,7 +211,7 @@ def harvest_all_data(text: str, filename: str) -> dict:
         "qa_numbers": qa_str
     }
     
-    print(f"📋 Final Harvest results:")
+    print("📋 Final Harvest results:")
     print(f"   Models: {result['models']}")
     print(f"   Author: {result['author'] or 'Not Found'}")
     if qa_str:

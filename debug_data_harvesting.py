@@ -93,7 +93,7 @@ def debug_patterns_on_text(text, label):
         if found_with_defaults:
             print(f"📊 Default patterns found: {found_with_defaults}")
         else:
-            print(f"❌ NO MATCHES with default patterns")
+            print("❌ NO MATCHES with default patterns")
             
     except Exception as e:
         print(f"❌ Error testing default patterns: {e}")
@@ -117,7 +117,7 @@ def debug_patterns_on_text(text, label):
         if found_with_combined:
             print(f"📊 Combined patterns found: {found_with_combined}")
         else:
-            print(f"❌ NO MATCHES with combined patterns")
+            print("❌ NO MATCHES with combined patterns")
             
     except Exception as e:
         print(f"❌ Error testing combined patterns: {e}")
@@ -156,7 +156,7 @@ def suggest_patterns_for_text(text, label):
     # Remove duplicates and suggest patterns
     unique_models = list(set(potential_models))
     if unique_models:
-        print(f"\n🎯 Suggested new patterns to add:")
+        print("\n🎯 Suggested new patterns to add:")
         for model in unique_models[:5]:  # Show first 5
             # Create a pattern for this specific model format
             escaped = re.escape(model)
@@ -164,11 +164,11 @@ def suggest_patterns_for_text(text, label):
             pattern = re.sub(r'\\?\d+', r'\\d+', escaped)
             print(f"   r'\\b{pattern}\\b'  # For models like: {model}")
     else:
-        print(f"❌ Could not identify potential model patterns in text")
+        print("❌ Could not identify potential model patterns in text")
 
 def test_real_failure_case():
     """Test with a user-provided failure case."""
-    print(f"\n🎯 TESTING USER'S SPECIFIC FAILURE CASE")
+    print("\n🎯 TESTING USER'S SPECIFIC FAILURE CASE")
     print("=" * 50)
     
     # Ask user to paste some text from a failed document
@@ -178,7 +178,7 @@ def test_real_failure_case():
     try:
         user_text = input().strip()
         if user_text:
-            print(f"\n🔍 Analyzing your text...")
+            print("\n🔍 Analyzing your text...")
             debug_patterns_on_text(user_text, "User's Failed Document")
         else:
             print("Skipped user input test")
@@ -187,7 +187,7 @@ def test_real_failure_case():
 
 def check_exclusion_issues():
     """Check if exclusion patterns are too aggressive."""
-    print(f"\n🚫 CHECKING EXCLUSION PATTERNS")
+    print("\n🚫 CHECKING EXCLUSION PATTERNS")
     print("=" * 40)
     
     try:
@@ -220,10 +220,10 @@ if __name__ == "__main__":
     check_exclusion_issues()
     test_real_failure_case()
     
-    print(f"\n📋 SUMMARY & NEXT STEPS:")
+    print("\n📋 SUMMARY & NEXT STEPS:")
     print("1. Check the test results above")
     print("2. If patterns aren't matching, add suggested patterns to custom_patterns.py")
     print("3. If exclusions are blocking models, check EXCLUSION_PATTERNS in config.py")
     print("4. If all tests pass but real documents fail, the issue is in OCR text extraction")
     
-    input(f"\nPress Enter to exit...")
+    input("\nPress Enter to exit...")
