@@ -34,7 +34,7 @@ def get_led_colors(status):
         "OCR": (BRAND_COLORS.get("accent_blue"), BRAND_COLORS.get("status_ocr_bg")),
         "AI": (BRAND_COLORS.get("kyocera_red"), BRAND_COLORS.get("status_ai_bg")),
         "Paused": (BRAND_COLORS.get("warning_orange"), BRAND_COLORS.get("status_default_bg")),
-        "Ready": ("gray", BRAND_COLORS.get("status_default_bg")),
+        "Ready": (BRAND_COLORS.get("success_green"), BRAND_COLORS.get("status_default_bg")),
         "Complete": (BRAND_COLORS.get("success_green"), BRAND_COLORS.get("status_default_bg")),
         "Cancelled": (BRAND_COLORS.get("warning_orange"), BRAND_COLORS.get("status_default_bg")),
         "Error": (BRAND_COLORS.get("fail_red"), BRAND_COLORS.get("status_default_bg")),
@@ -121,7 +121,7 @@ class KyoQAToolApp(tk.Tk):
         # UI Vars
         self.selected_folder, self.selected_excel = tk.StringVar(), tk.StringVar()
         self.status_current_file, self.progress_value = tk.StringVar(value="Ready to process"), tk.DoubleVar()
-        self.time_remaining_var, self.led_status_var = tk.StringVar(), tk.StringVar(value="●")
+        self.time_remaining_var, self.led_status_var = tk.StringVar(), tk.StringVar(value="\u26AA")
 
         check_and_create_icons()
         self._load_icons()
@@ -334,6 +334,17 @@ class KyoQAToolApp(tk.Tk):
                     self.status_current_file.set(msg.get("msg", ""))
                     if msg.get("led"):
                         self.set_led(msg.get("led"))
+                elif mtype == "progress":
+                    current = msg.get("current", 0)
+                    total = msg.get("total", 1)
+                    if total > 0:
+                        percent = current / total * 100
+                    else:
+                        percent = 0
+                    self.progress_value.set(percent)
+                    if self.start_time:
+                        self.total_files = msg.get("total", self.total_files)
+                        self._update_time_remaining()
                 elif mtype == "review_item":
                     data = msg.get("data", {})
                     self.reviewable_files.append(data)
@@ -345,6 +356,10 @@ class KyoQAToolApp(tk.Tk):
                             data.get("reason", "N/A"),
                         ),
                     )
+                elif mtype == "progress":
+                    total = msg.get("total", 1) or 1
+                    current = msg.get("current", 0)
+                    self.progress_value.set((current / total) * 100)
                 elif mtype == "finish":
                     status = msg.get("status", "Complete")
                     self.log_message(f"Job finished: {status}")
@@ -356,6 +371,8 @@ class KyoQAToolApp(tk.Tk):
                     if hasattr(self, counter_name):
                         current = getattr(self, counter_name).get()
                         getattr(self, counter_name).set(current + 1)
+                elif mtype == "import_progress":
+                    self.import_progress.set(msg.get("value", 0))
         except queue.Empty:
             pass
 
@@ -369,6 +386,7 @@ class KyoQAToolApp(tk.Tk):
         self.process_btn.config(state=tk.DISABLED); self.rerun_btn.config(state=tk.DISABLED)
         self.open_result_btn.config(state=tk.DISABLED)
         self.pause_btn.config(state=tk.NORMAL); self.stop_btn.config(state=tk.NORMAL)
+        self.progress_value.set(0)
         self.set_led("Processing")
 
     def update_ui_for_finish(self, status):
@@ -377,7 +395,7 @@ class KyoQAToolApp(tk.Tk):
         self.process_btn.config(state=tk.NORMAL)
         if self.reviewable_files: self.rerun_btn.config(state=tk.NORMAL)
         self.pause_btn.config(state=tk.DISABLED); self.stop_btn.config(state=tk.DISABLED)
-        self.set_led(status if status == "Complete" else "Error")
+        self.set_led("Ready" if status == "Complete" else "Error")
 
     def log_message(self, message, level="info"):
         self.log_text.config(state=tk.NORMAL)
@@ -401,7 +419,9 @@ class KyoQAToolApp(tk.Tk):
             filetypes=[("Excel Files", "*.xlsx *.xlsm")],
         )
         if path:
+            self.import_progress.set(0)
             self.selected_excel.set(path)
+            self.after(100, lambda: self.import_progress.set(100))
     def browse_folder(self):
         path = filedialog.askdirectory(title="Select Folder with PDFs")
         if path:
@@ -439,12 +459,12 @@ class KyoQAToolApp(tk.Tk):
     def open_pattern_manager(self):
         ReviewWindow(self, "MODEL_PATTERNS", "Model Patterns", None)
     def set_led(self, status):
-        """Update the small status LED and bar colour."""
+        """Update the small status LED icon and background colour."""
         self.led_status_var.set("●")
         fg, bg = get_led_colors(status)
-
+        bg = bg_map.get(status, BRAND_COLORS.get("status_default_bg"))
         self.status_frame.configure(background=bg)
-        self.led_label.configure(foreground=fg, background=bg)
+        self.led_label.configure(background=bg)
         for child in self.status_frame.winfo_children():
             try:
                 child.configure(background=bg)
