@@ -32,6 +32,9 @@ class DummyVar:
     def get(self):
         return getattr(self, 'value', 0)
 
+    def get(self):
+        return getattr(self, "value", 0)
+
 class DummyTree:
     def insert(self, *a, **k):
         pass
@@ -47,8 +50,7 @@ class DummyApp:
         self.reviewable_files = []
         self.review_tree = DummyTree()
         self.result_file_path = None
-        self.start_time = None
-        self.total_files = 0
+        self.progress_value = DummyVar()
     def log_message(self, msg):
         pass
     def update_ui_for_finish(self, status):
@@ -68,10 +70,9 @@ def test_enable_open_result_message():
     app.process_response_queue()
     assert app.open_result_btn.state == tk.NORMAL
 
-
-def test_progress_message_updates_progress_value():
+def test_progress_message_updates_value():
     app = DummyApp()
     app.process_response_queue = MethodType(KyoQAToolApp.process_response_queue, app)
-    app.response_queue.put({"type": "progress", "current": 5, "total": 10})
+    app.response_queue.put({"type": "progress", "current": 2, "total": 4})
     app.process_response_queue()
-    assert app.progress_value.get() == 50
+    assert app.progress_value.get() == 50.0

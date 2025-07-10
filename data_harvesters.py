@@ -47,6 +47,24 @@ QA_NUMBER_PATTERNS = [
         except Exception as e:
             print(f"❌ Failed to create custom_patterns.py: {e}")
             return False
+
+    try:
+        importlib.reload(custom_patterns)
+    except Exception as e:
+        print(f"❌ Error reloading custom_patterns: {e}")
+        return False
+
+    for attr in ("MODEL_PATTERNS", "QA_NUMBER_PATTERNS"):
+        patterns = getattr(custom_patterns, attr, [])
+        valid_patterns = []
+        for pattern in patterns:
+            try:
+                re.compile(pattern)
+                valid_patterns.append(pattern)
+            except re.error as exc:
+                print(f"❌ Invalid regex in {attr}: {pattern!r} -> {exc}")
+        setattr(custom_patterns, attr, valid_patterns)
+
     return True
 
 def get_combined_patterns(pattern_name: str, default_patterns: list) -> list:
