@@ -20,6 +20,8 @@ from gui_components import (
     create_process_controls
 )
 
+from summary_utils import build_summary_message
+
 logger = logging_utils.setup_logger("app")
 
 def check_and_create_icons():
@@ -233,6 +235,14 @@ class KyoQAToolApp(tk.Tk):
                     status = msg.get("status", "Complete")
                     self.log_message(f"Job finished: {status}")
                     self.update_ui_for_finish(status)
+                    if self.result_file_path:
+                        self.open_result_btn.config(state=tk.NORMAL)
+                    summary = build_summary_message(
+                        self.count_pass.get(),
+                        self.count_fail.get(),
+                        self.count_review.get(),
+                    )
+                    messagebox.showinfo("Job Complete", summary)
                 elif mtype == "result_path": self.result_file_path = msg.get("path")
                 elif mtype == "increment_counter":
                     counter_name = f"count_{msg.get('counter')}"
@@ -248,6 +258,8 @@ class KyoQAToolApp(tk.Tk):
         self.reviewable_files.clear(); self.review_tree.delete(*self.review_tree.get_children())
         self.process_btn.config(state=tk.DISABLED); self.rerun_btn.config(state=tk.DISABLED)
         self.pause_btn.config(state=tk.NORMAL); self.stop_btn.config(state=tk.NORMAL)
+        if hasattr(self, 'open_result_btn'):
+            self.open_result_btn.config(state=tk.DISABLED)
 
     def update_ui_for_finish(self, status):
         self.is_processing = False; self.is_paused = False
