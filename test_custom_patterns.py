@@ -4,8 +4,8 @@ from pathlib import Path
 import importlib
 import re
 
-def test_and_fix_custom_patterns():
-    """Complete test and fix for custom patterns system."""
+def run_custom_patterns_diagnostic():
+    """Complete diagnostic and fix routine for custom patterns system."""
     print("🔧 CUSTOM PATTERNS DIAGNOSTIC & FIX TOOL")
     print("=" * 60)
     
@@ -301,7 +301,7 @@ if __name__ == "__main__":
     choice = input("\nEnter choice (1, 2, or 3): ").strip()
     
     if choice in ["1", "3"]:
-        success = test_and_fix_custom_patterns()
+        success = run_custom_patterns_diagnostic()
         
     if choice in ["2", "3"]:
         if input(f"\nCreate sample patterns? (y/n): ").lower().startswith('y'):
