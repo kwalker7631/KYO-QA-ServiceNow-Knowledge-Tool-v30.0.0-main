@@ -11,5 +11,5 @@ def test_custom_config_multiline():
     match = pattern.search(content)
     assert match, 'custom_config assignment not found'
     assignment = match.group(0)
-    assert "'" not in assignment.split('\n')[-1].strip(), 'stray quote found after custom_config'
+    assert "'" not in assignment.split('\n')[-2].strip(), 'stray quote found after custom_config'
 
