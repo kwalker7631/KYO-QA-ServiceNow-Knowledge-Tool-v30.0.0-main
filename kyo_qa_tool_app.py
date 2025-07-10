@@ -426,8 +426,10 @@ class KyoQAToolApp(tk.Tk):
         self.is_paused = not self.is_paused
         if self.is_paused:
             self.pause_event.set()
+            self.set_led("Paused")
         else:
             self.pause_event.clear()
+            self.set_led("Processing")
     def stop_processing(self):
         if self.is_processing:
             self.cancel_event.set()
@@ -438,27 +440,8 @@ class KyoQAToolApp(tk.Tk):
         ReviewWindow(self, "MODEL_PATTERNS", "Model Patterns", None)
     def set_led(self, status):
         """Update the small status LED and bar colour."""
-        color_map = {
-            "Ready": BRAND_COLORS.get("accent_blue"),
-            "Processing": BRAND_COLORS.get("success_green"),
-            "Paused": BRAND_COLORS.get("warning_orange"),
-            "OCR": BRAND_COLORS.get("warning_orange"),
-            "AI": BRAND_COLORS.get("accent_blue"),
-            "Saving": BRAND_COLORS.get("accent_blue"),
-            "Complete": BRAND_COLORS.get("success_green"),
-            "Cancelled": BRAND_COLORS.get("fail_red"),
-            "Error": BRAND_COLORS.get("fail_red"),
-        }
-
-        bg_map = {
-            "Processing": BRAND_COLORS.get("status_processing_bg"),
-            "OCR": BRAND_COLORS.get("status_ocr_bg"),
-            "AI": BRAND_COLORS.get("status_ai_bg"),
-        }
-
         self.led_status_var.set("●")
-        fg = color_map.get(status, BRAND_COLORS.get("accent_blue"))
-        bg = bg_map.get(status, BRAND_COLORS.get("status_default_bg"))
+        fg, bg = get_led_colors(status)
 
         self.status_frame.configure(background=bg)
         self.led_label.configure(foreground=fg, background=bg)
