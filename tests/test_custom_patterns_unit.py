@@ -19,6 +19,5 @@ class TestCustomPatterns(unittest.TestCase):
         for pat in custom_patterns.MODEL_PATTERNS:
             self.assertNotIn("\\\\b", pat)
 
-
 if __name__ == "__main__":
     unittest.main()
