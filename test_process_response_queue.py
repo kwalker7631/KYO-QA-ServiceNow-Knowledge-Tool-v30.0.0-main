@@ -44,6 +44,7 @@ class DummyApp:
         self.reviewable_files = []
         self.review_tree = DummyTree()
         self.result_file_path = None
+        self.import_progress = DummyVar()
     def log_message(self, msg):
         pass
     def update_ui_for_finish(self, status):
@@ -60,3 +61,11 @@ def test_enable_open_result_message():
     app.response_queue.put({"type": "enable_open_result"})
     app.process_response_queue()
     assert app.open_result_btn.state == tk.NORMAL
+
+
+def test_import_progress_message():
+    app = DummyApp()
+    app.process_response_queue = MethodType(KyoQAToolApp.process_response_queue, app)
+    app.response_queue.put({"type": "import_progress", "value": 55})
+    app.process_response_queue()
+    assert app.import_progress.value == 55

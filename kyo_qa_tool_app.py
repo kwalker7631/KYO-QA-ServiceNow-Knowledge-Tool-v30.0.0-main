@@ -121,6 +121,7 @@ class KyoQAToolApp(tk.Tk):
         # UI Vars
         self.selected_folder, self.selected_excel = tk.StringVar(), tk.StringVar()
         self.status_current_file, self.progress_value = tk.StringVar(value="Ready to process"), tk.DoubleVar()
+        self.import_progress = tk.DoubleVar()
         self.time_remaining_var, self.led_status_var = tk.StringVar(), tk.StringVar(value="●")
 
         check_and_create_icons()
@@ -356,6 +357,8 @@ class KyoQAToolApp(tk.Tk):
                     if hasattr(self, counter_name):
                         current = getattr(self, counter_name).get()
                         getattr(self, counter_name).set(current + 1)
+                elif mtype == "import_progress":
+                    self.import_progress.set(msg.get("value", 0))
         except queue.Empty:
             pass
 
@@ -401,7 +404,9 @@ class KyoQAToolApp(tk.Tk):
             filetypes=[("Excel Files", "*.xlsx *.xlsm")],
         )
         if path:
+            self.import_progress.set(0)
             self.selected_excel.set(path)
+            self.after(100, lambda: self.import_progress.set(100))
     def browse_folder(self):
         path = filedialog.askdirectory(title="Select Folder with PDFs")
         if path:

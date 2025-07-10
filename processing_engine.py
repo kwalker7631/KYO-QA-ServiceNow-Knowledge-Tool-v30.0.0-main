@@ -305,10 +305,11 @@ def run_processing_job(job_info, progress_queue, cancel_event, pause_event):
         input_path = job_info["input_path"]
         
         progress_queue.put({
-            "type": "log", 
-            "tag": "info", 
+            "type": "log",
+            "tag": "info",
             "msg": f"Processing job started. Rerun: {is_rerun}"
         })
+        progress_queue.put({"type": "import_progress", "value": 10})
 
         # Handle Excel file cloning
         if is_rerun:
@@ -330,10 +331,11 @@ def run_processing_job(job_info, progress_queue, cancel_event, pause_event):
             # Clone the Excel file
             shutil.copy(excel_path, cloned_path)
             progress_queue.put({
-                "type": "log", 
-                "tag": "info", 
+                "type": "log",
+                "tag": "info",
                 "msg": f"Excel file cloned to: {cloned_path.name}"
             })
+            progress_queue.put({"type": "import_progress", "value": 50})
         
         # Get list of files to process
         if isinstance(input_path, list):
@@ -451,6 +453,7 @@ def run_processing_job(job_info, progress_queue, cancel_event, pause_event):
         try:
             # Load workbook
             workbook = openpyxl.load_workbook(cloned_path)
+            progress_queue.put({"type": "import_progress", "value": 75})
             sheet = workbook.active
             headers = [c.value for c in sheet[1]]
             
@@ -555,6 +558,7 @@ def run_processing_job(job_info, progress_queue, cancel_event, pause_event):
 
             # Save the workbook
             workbook.save(cloned_path)
+            progress_queue.put({"type": "import_progress", "value": 100})
             progress_queue.put({
                 "type": "result_path",
                 "path": str(cloned_path)

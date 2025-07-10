@@ -26,6 +26,14 @@ def create_io_section(parent, app):
     app.files_label.grid(row=2, column=1, sticky="e", padx=5, pady=(5,0))
     ttk.Button(io, image=app.browse_icon, text=" Browse Files...", compound="left", command=app.browse_files).grid(row=2, column=2, padx=5, pady=(5,0))
 
+    # Progress bar for template import
+    app.import_progress_bar = ttk.Progressbar(
+        io, variable=app.import_progress, style="Blue.Horizontal.TProgressbar"
+    )
+    app.import_progress_bar.grid(
+        row=3, column=0, columnspan=3, sticky="ew", padx=5, pady=(5, 0)
+    )
+
 def create_process_controls(parent, app):
     ctrl = ttk.LabelFrame(parent, text="2. Process & Manage", padding=10)
     ctrl.grid(row=1, column=0, sticky="ew", pady=5)
