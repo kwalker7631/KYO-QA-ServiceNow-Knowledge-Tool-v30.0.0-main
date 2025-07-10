@@ -11,13 +11,13 @@ def debug_custom_patterns():
     
     # Check if custom_patterns.py exists
     custom_patterns_path = Path("custom_patterns.py")
-    print(f"\n1. Custom patterns file check:")
+    print("\n1. Custom patterns file check:")
     print(f"   Path: {custom_patterns_path.absolute()}")
     print(f"   Exists: {custom_patterns_path.exists()}")
     
     if custom_patterns_path.exists():
         print(f"   Size: {custom_patterns_path.stat().st_size} bytes")
-        print(f"   Content preview:")
+        print("   Content preview:")
         try:
             content = custom_patterns_path.read_text(encoding='utf-8')
             print(f"   {content[:200]}...")
@@ -28,16 +28,16 @@ def debug_custom_patterns():
         create_default_custom_patterns()
     
     # Test importing custom_patterns
-    print(f"\n2. Import test:")
+    print("\n2. Import test:")
     try:
         if 'custom_patterns' in sys.modules:
             del sys.modules['custom_patterns']
         
         import custom_patterns as custom_module
-        print(f"   ✅ Import successful")
+        print("   ✅ Import successful")
         
         # Check for required attributes
-        print(f"\n3. Pattern attributes check:")
+        print("\n3. Pattern attributes check:")
         for attr_name in ["MODEL_PATTERNS", "QA_NUMBER_PATTERNS"]:
             if hasattr(custom_module, attr_name):
                 attr_value = getattr(custom_module, attr_name)
@@ -54,7 +54,7 @@ def debug_custom_patterns():
         traceback.print_exc()
     
     # Test the get_combined_patterns function
-    print(f"\n4. Testing pattern combination:")
+    print("\n4. Testing pattern combination:")
     try:
         from data_harvesters import get_combined_patterns
         from config import MODEL_PATTERNS as DEFAULT_MODEL_PATTERNS
@@ -66,7 +66,7 @@ def debug_custom_patterns():
         print(f"   Custom patterns: {custom_count}")
         
         if combined:
-            print(f"   Sample patterns:")
+            print("   Sample patterns:")
             for i, pattern in enumerate(combined[:3]):
                 print(f"      {i+1}. {pattern}")
                 
@@ -76,7 +76,7 @@ def debug_custom_patterns():
         traceback.print_exc()
     
     # Test pattern matching
-    print(f"\n5. Testing pattern matching:")
+    print("\n5. Testing pattern matching:")
     test_text = """
     Sample document with models like:
     TASKalfa 8000i
@@ -90,7 +90,7 @@ def debug_custom_patterns():
     try:
         from data_harvesters import harvest_models
         found_models = harvest_models(test_text, "test_file.pdf")
-        print(f"   ✅ Pattern matching test:")
+        print("   ✅ Pattern matching test:")
         print(f"   Found models: {found_models}")
         
     except Exception as e:
@@ -98,7 +98,7 @@ def debug_custom_patterns():
         import traceback
         traceback.print_exc()
     
-    print(f"\n6. Recommendations:")
+    print("\n6. Recommendations:")
     if not custom_patterns_path.exists():
         print("   📝 Create custom_patterns.py file")
     
@@ -113,7 +113,7 @@ def debug_custom_patterns():
         except:
             pass
     
-    print(f"\n✅ Debug complete!")
+    print("\n✅ Debug complete!")
 
 def create_default_custom_patterns():
     """Create a default custom_patterns.py file."""

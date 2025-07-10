@@ -14,7 +14,7 @@ def test_and_fix_custom_patterns():
     
     # 1. Check if custom_patterns.py exists
     custom_patterns_path = Path("custom_patterns.py")
-    print(f"\n1. File Existence Check:")
+    print("\n1. File Existence Check:")
     print(f"   Path: {custom_patterns_path.absolute()}")
     print(f"   Exists: {custom_patterns_path.exists()}")
     
@@ -45,7 +45,7 @@ QA_NUMBER_PATTERNS = [
             return False
     
     # 2. Check file content and format
-    print(f"\n2. File Content Check:")
+    print("\n2. File Content Check:")
     try:
         content = custom_patterns_path.read_text(encoding='utf-8')
         print(f"   Size: {len(content)} characters")
@@ -65,7 +65,7 @@ QA_NUMBER_PATTERNS = [
             
         # Show preview
         lines = content.split('\n')
-        print(f"   Content preview (first 5 lines):")
+        print("   Content preview (first 5 lines):")
         for i, line in enumerate(lines[:5]):
             print(f"     {i+1}: {line}")
             
@@ -75,7 +75,7 @@ QA_NUMBER_PATTERNS = [
         return False
     
     # 3. Test importing the module
-    print(f"\n3. Import Test:")
+    print("\n3. Import Test:")
     try:
         # Clear from cache to force fresh import
         if 'custom_patterns' in sys.modules:
@@ -96,7 +96,7 @@ QA_NUMBER_PATTERNS = [
                 if attr_value:
                     print(f"      Sample: {attr_value[0]}")
                 else:
-                    print(f"      (empty list)")
+                    print("      (empty list)")
             else:
                 print(f"   ❌ ISSUE: Missing {attr_name} attribute")
                 issues_found.append(f"Missing {attr_name} attribute")
@@ -106,7 +106,7 @@ QA_NUMBER_PATTERNS = [
         issues_found.append(f"Syntax error: {e}")
         
         # Try to fix common syntax issues
-        print(f"   🔧 Attempting to fix syntax issues...")
+        print("   🔧 Attempting to fix syntax issues...")
         try:
             content = custom_patterns_path.read_text(encoding='utf-8')
             
@@ -149,13 +149,13 @@ QA_NUMBER_PATTERNS = [
         issues_found.append(f"Unexpected error: {e}")
     
     # 4. Test pattern combination function
-    print(f"\n4. Pattern Combination Test:")
+    print("\n4. Pattern Combination Test:")
     try:
         from data_harvesters import get_combined_patterns
         from config import MODEL_PATTERNS as DEFAULT_MODEL_PATTERNS
         
         combined = get_combined_patterns("MODEL_PATTERNS", DEFAULT_MODEL_PATTERNS)
-        print(f"   ✅ Pattern combination successful")
+        print("   ✅ Pattern combination successful")
         print(f"   Default patterns: {len(DEFAULT_MODEL_PATTERNS)}")
         print(f"   Combined patterns: {len(combined)}")
         custom_count = len(combined) - len(DEFAULT_MODEL_PATTERNS)
@@ -170,7 +170,7 @@ QA_NUMBER_PATTERNS = [
         issues_found.append(f"Pattern combination error: {e}")
     
     # 5. Test actual pattern matching
-    print(f"\n5. Pattern Matching Test:")
+    print("\n5. Pattern Matching Test:")
     test_text = """
     Test document with various models:
     TASKalfa 8000i
@@ -186,7 +186,7 @@ QA_NUMBER_PATTERNS = [
     try:
         from data_harvesters import harvest_all_data
         result = harvest_all_data(test_text, "test_file.pdf")
-        print(f"   ✅ Pattern matching test completed")
+        print("   ✅ Pattern matching test completed")
         print(f"   Found models: {result.get('models', 'None')}")
         
         if result.get('models') == 'Not Found':
@@ -198,9 +198,9 @@ QA_NUMBER_PATTERNS = [
         issues_found.append(f"Pattern matching error: {e}")
     
     # 6. Summary and recommendations
-    print(f"\n" + "=" * 60)
-    print(f"DIAGNOSTIC SUMMARY")
-    print(f"=" * 60)
+    print("\n" + "=" * 60)
+    print("DIAGNOSTIC SUMMARY")
+    print("=" * 60)
     
     if not issues_found:
         print("✅ No issues found! Custom patterns system is working correctly.")
@@ -214,7 +214,7 @@ QA_NUMBER_PATTERNS = [
         for i, fix in enumerate(fixes_applied, 1):
             print(f"   {i}. {fix}")
     
-    print(f"\n📋 RECOMMENDATIONS:")
+    print("\n📋 RECOMMENDATIONS:")
     
     if "Missing custom_patterns.py file" in issues_found and "Created default custom_patterns.py" in fixes_applied:
         print("   1. ✅ Custom patterns file created. You can now add patterns through the UI.")
@@ -236,18 +236,18 @@ QA_NUMBER_PATTERNS = [
         print("      - Test patterns in the Pattern Manager")
         print("      - Make sure patterns match your document formats")
     
-    print(f"\n🎯 NEXT STEPS:")
+    print("\n🎯 NEXT STEPS:")
     print("   1. Run your application")
     print("   2. Open the Pattern Manager (Patterns button)")
     print("   3. Add or edit custom patterns") 
     print("   4. Test patterns against sample text")
     print("   5. Save patterns and re-run processing")
     
-    return len(issues_found) == 0
+    assert not issues_found
 
 def create_sample_patterns():
     """Create some sample patterns for testing."""
-    print(f"\n🎯 Creating sample patterns for testing...")
+    print("\n🎯 Creating sample patterns for testing...")
     
     sample_patterns = {
         "MODEL_PATTERNS": [
@@ -304,7 +304,7 @@ if __name__ == "__main__":
         success = test_and_fix_custom_patterns()
         
     if choice in ["2", "3"]:
-        if input(f"\nCreate sample patterns? (y/n): ").lower().startswith('y'):
+        if input("\nCreate sample patterns? (y/n): ").lower().startswith('y'):
             create_sample_patterns()
     
-    input(f"\nPress Enter to exit...")
+    input("\nPress Enter to exit...")
