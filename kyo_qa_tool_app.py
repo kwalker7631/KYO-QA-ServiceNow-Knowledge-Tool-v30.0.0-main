@@ -446,8 +446,10 @@ class KyoQAToolApp(tk.Tk):
         self.is_paused = not self.is_paused
         if self.is_paused:
             self.pause_event.set()
+            self.set_led("Paused")
         else:
             self.pause_event.clear()
+            self.set_led("Processing")
     def stop_processing(self):
         if self.is_processing:
             self.cancel_event.set()
