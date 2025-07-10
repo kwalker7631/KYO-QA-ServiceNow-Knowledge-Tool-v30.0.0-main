@@ -437,28 +437,9 @@ class KyoQAToolApp(tk.Tk):
     def open_pattern_manager(self):
         ReviewWindow(self, "MODEL_PATTERNS", "Model Patterns", None)
     def set_led(self, status):
-        """Update the small status LED and bar colour."""
-        color_map = {
-            "Ready": BRAND_COLORS.get("accent_blue"),
-            "Processing": BRAND_COLORS.get("success_green"),
-            "Paused": BRAND_COLORS.get("warning_orange"),
-            "OCR": BRAND_COLORS.get("warning_orange"),
-            "AI": BRAND_COLORS.get("accent_blue"),
-            "Saving": BRAND_COLORS.get("accent_blue"),
-            "Complete": BRAND_COLORS.get("success_green"),
-            "Cancelled": BRAND_COLORS.get("fail_red"),
-            "Error": BRAND_COLORS.get("fail_red"),
-        }
-
-        bg_map = {
-            "Processing": BRAND_COLORS.get("status_processing_bg"),
-            "OCR": BRAND_COLORS.get("status_ocr_bg"),
-            "AI": BRAND_COLORS.get("status_ai_bg"),
-        }
-
+        """Update the small status LED icon and background colour."""
         self.led_status_var.set("●")
-        fg = color_map.get(status, BRAND_COLORS.get("accent_blue"))
-        bg = bg_map.get(status, BRAND_COLORS.get("status_default_bg"))
+        fg, bg = get_led_colors(status)
 
         self.status_frame.configure(background=bg)
         self.led_label.configure(foreground=fg, background=bg)
