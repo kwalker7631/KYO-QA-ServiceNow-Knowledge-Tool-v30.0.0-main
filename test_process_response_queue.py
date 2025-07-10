@@ -60,7 +60,6 @@ class DummyApp:
     def _update_time_remaining(self):
         pass
 
-
 def test_enable_open_result_message():
     app = DummyApp()
     # Bind the processing method from the real class

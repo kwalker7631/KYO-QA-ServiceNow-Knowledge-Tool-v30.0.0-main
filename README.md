@@ -46,6 +46,7 @@ Download the Windows installer from [UB Mannheim](https://github.com/UB-Mannheim
 ### Basic Workflow
 
 1. **Select Excel Template**: Click "Browse" to select your ServiceNow kb_knowledge.xlsx template
+   - A short progress bar below the fields fills while the template loads
 2. **Select PDFs**: Choose either:
    - A folder containing PDFs
    - Individual PDF files
