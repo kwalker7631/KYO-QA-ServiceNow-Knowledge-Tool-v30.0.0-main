@@ -5,8 +5,7 @@ import importlib
 import re
 import pytest
 
-pytest.skip("Diagnostic script - skipping during automated tests", allow_module_level=True)
-
+@pytest.mark.skip("Diagnostic script - not run in automated tests")
 def test_and_fix_custom_patterns():
     """Complete test and fix for custom patterns system."""
     print("🔧 CUSTOM PATTERNS DIAGNOSTIC & FIX TOOL")
@@ -245,8 +244,8 @@ QA_NUMBER_PATTERNS = [
     print("   3. Add or edit custom patterns") 
     print("   4. Test patterns against sample text")
     print("   5. Save patterns and re-run processing")
-    
-    return len(issues_found) == 0
+
+    assert len(issues_found) == 0
 
 def create_sample_patterns():
     """Create some sample patterns for testing."""
