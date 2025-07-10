@@ -335,9 +335,11 @@ class KyoQAToolApp(tk.Tk):
                     if msg.get("led"):
                         self.set_led(msg.get("led"))
                 elif mtype == "progress":
-                    try:
-                        percent = msg.get("current", 0) / msg.get("total", 1) * 100
-                    except Exception:
+                    current = msg.get("current", 0)
+                    total = msg.get("total", 1)
+                    if total > 0:
+                        percent = current / total * 100
+                    else:
                         percent = 0
                     self.progress_value.set(percent)
                     if self.start_time:
