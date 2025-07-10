@@ -556,9 +556,11 @@ def run_processing_job(job_info, progress_queue, cancel_event, pause_event):
             # Save the workbook
             workbook.save(cloned_path)
             progress_queue.put({
-                "type": "result_path", 
+                "type": "result_path",
                 "path": str(cloned_path)
             })
+            # Notify UI that the result can now be opened
+            progress_queue.put({"type": "enable_open_result"})
             
             # Generate processing summary
             total_time = time.time() - start_time
