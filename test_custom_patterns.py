@@ -1,9 +1,11 @@
 # test_custom_patterns.py - Complete test and fix script for custom patterns
+import pytest
 import sys
 from pathlib import Path
 import importlib
 import re
 import pytest
+@pytest.mark.skip("Diagnostic script - not run in automated tests")
 
 def run_custom_patterns_diagnostic():
     """Complete test and fix for custom patterns system."""
@@ -244,8 +246,7 @@ QA_NUMBER_PATTERNS = [
     print("   4. Test patterns against sample text")
     print("   5. Save patterns and re-run processing")
 
-    return len(issues_found) == 0
-
+    assert len(issues_found) == 0
 
 def test_custom_patterns():
     """Pytest wrapper to ensure diagnostic passes."""
