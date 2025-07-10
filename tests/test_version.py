@@ -15,3 +15,10 @@ def test_import_start_tool():
 def test_import_packaging_script():
     mod = importlib.import_module("packaging_script")
     assert mod.current_version == version.VERSION
+
+
+def test_print_header_uses_get_version(capsys):
+    start_mod = importlib.import_module("start_tool")
+    start_mod.print_header()
+    captured = capsys.readouterr().out
+    assert version.VERSION in captured
