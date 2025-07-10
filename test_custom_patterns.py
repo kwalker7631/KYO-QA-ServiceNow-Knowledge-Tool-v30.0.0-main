@@ -7,7 +7,7 @@ import re
 import pytest
 @pytest.mark.skip("Diagnostic script - not run in automated tests")
 
-def test_and_fix_custom_patterns():
+def run_custom_patterns_diagnostic():
     """Complete test and fix for custom patterns system."""
     print("🔧 CUSTOM PATTERNS DIAGNOSTIC & FIX TOOL")
     print("=" * 60)
@@ -248,6 +248,10 @@ QA_NUMBER_PATTERNS = [
 
     assert len(issues_found) == 0
 
+def test_custom_patterns():
+    """Pytest wrapper to ensure diagnostic passes."""
+    assert run_custom_patterns_diagnostic() is True
+
 def create_sample_patterns():
     """Create some sample patterns for testing."""
     print(f"\n🎯 Creating sample patterns for testing...")
@@ -304,7 +308,7 @@ if __name__ == "__main__":
     choice = input("\nEnter choice (1, 2, or 3): ").strip()
     
     if choice in ["1", "3"]:
-        success = test_and_fix_custom_patterns()
+        success = run_custom_patterns_diagnostic()
         
     if choice in ["2", "3"]:
         if input(f"\nCreate sample patterns? (y/n): ").lower().startswith('y'):
