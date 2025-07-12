@@ -49,8 +49,13 @@ def process_single_pdf(pdf_path: Path, progress_queue, ignore_cache: bool = Fals
             progress_queue.put({"type": "log", "msg": f"Cache corrupt for {filename}, reprocessing."})
 
     result = {
-        "file_name": filename, "Meta": "", "Author": "", "processing_status": "Failed",
-        "failure_reason": "", "ocr_used": False, "review_info": None,
+        "file_name": filename,
+        META_COLUMN_NAME: "",
+        AUTHOR_COLUMN_NAME: "",
+        "processing_status": "Failed",
+        "failure_reason": "",
+        "ocr_used": False,
+        "review_info": None,
         "Short description": f"Processed: {filename}",
     }
     start_time = time.time()
@@ -67,10 +72,10 @@ def process_single_pdf(pdf_path: Path, progress_queue, ignore_cache: bool = Fals
         if status == "success":
             progress_queue.put({"type": "status", "msg": f"Extracting data: {filename}", "led": "AI"})
             data = harvest_all_data(text, filename)
-            result["Meta"] = data["models"]
-            result["Author"] = data["author"]
+            result[META_COLUMN_NAME] = data["models"]
+            result[AUTHOR_COLUMN_NAME] = data["author"]
 
-            if result["Meta"] == "Not Found":
+            if result[META_COLUMN_NAME] == "Not Found":
                 result["processing_status"] = "Needs Review"
                 result["failure_reason"] = "No model patterns were found in the document."
                 
@@ -92,11 +97,11 @@ def process_single_pdf(pdf_path: Path, progress_queue, ignore_cache: bool = Fals
             status_map = {"protected": "Protected", "corrupted": "Corrupted", "ocr_failed": "OCR Failed", "no_text": "No Text Found"}
             result["processing_status"] = status_map.get(status, "Failed")
             result["failure_reason"] = reason
-            result["Meta"] = f"Error: {result['processing_status']}"
+            result[META_COLUMN_NAME] = f"Error: {result['processing_status']}"
 
     except Exception as e:
         result["processing_status"] = "Failed"; result["failure_reason"] = f"A critical error occurred: {e}"
-        result["Meta"] = "Error: Critical Failure"
+        result[META_COLUMN_NAME] = "Error: Critical Failure"
         progress_queue.put({"type": "log", "tag": "error", "msg": f"CRITICAL ERROR on {filename}: {e}"})
 
     result['processing_time'] = time.time() - start_time

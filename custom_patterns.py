@@ -15,7 +15,15 @@ MODEL_PATTERNS = [
     '\\bFS\\-C\\d+DN\\b',
     '\\bP\\d+cdn\\b',
     '\\bM\\d+cidn\\b',
-    '\\bFS\\-C\\d+MFP\\b',
+    '\\bM\\d+idnf\\b',
+    '\\bM\\d+idn\\b',
+    '\\bM\\d+idnf\\b',
     '\\bKM\\-C\\d+\\b',
+    '\\bVi\\d+\\b',
+    '\\bKM\\-C\\d+E\\b',
+    '\\bKM\\-C\\d+E\\b',
+]
+
+QA_NUMBER_PATTERNS = [
 ]
 

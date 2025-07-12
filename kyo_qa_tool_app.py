@@ -113,8 +113,8 @@ class KyoQAToolApp(tk.Tk):
         if not job and (not input_path or not excel_path):
             messagebox.showwarning("Input Missing", "Please select an Excel file and a folder/files to process.")
             return
-        self.update_ui_for_start()
-        self.log_message("Starting new processing job...")
+        self.update_ui_for_start(is_rerun)
+        self.log_message(f"Starting {'re-run' if is_rerun else 'new'} processing job...")
         self.start_time = time.time()
         job_info = job or {"excel_path": excel_path, "input_path": input_path, "is_rerun": is_rerun}
         threading.Thread(target=run_processing_job, args=(job_info, self.response_queue, self.cancel_event, self.pause_event), daemon=True).start()
@@ -158,7 +158,7 @@ class KyoQAToolApp(tk.Tk):
     def handle_review_item(self, msg):
         data = msg.get("data", {})
         self.reviewable_files.append(data)
-        self.review_tree.insert("", "end", values=(data.get("filename", ""), data.get("reason", "")))
+        self.review_tree.insert("", "end", iid=data['filename'], values=(data.get("filename", ""), data.get("reason", "")))
         
     def handle_file_complete(self, msg):
         status = msg.get("status")
@@ -166,12 +166,13 @@ class KyoQAToolApp(tk.Tk):
         elif status == "Needs Review": self.count_review.set(self.count_review.get() + 1)
         else: self.count_fail.set(self.count_fail.get() + 1)
 
-    def update_ui_for_start(self):
+    def update_ui_for_start(self, is_rerun=False):
         self.is_processing, self.is_paused = True, False
         self.cancel_event.clear(); self.pause_event.clear()
-        self.reviewable_files.clear()
-        self.review_tree.delete(*self.review_tree.get_children())
-        for var in [self.count_pass, self.count_fail, self.count_review, self.count_ocr]: var.set(0)
+        if not is_rerun:
+            self.reviewable_files.clear()
+            self.review_tree.delete(*self.review_tree.get_children())
+            for var in [self.count_pass, self.count_fail, self.count_review, self.count_ocr]: var.set(0)
         self.process_btn.config(state=tk.DISABLED); self.rerun_btn.config(state=tk.DISABLED)
         self.open_result_btn.config(state=tk.DISABLED); self.pause_btn.config(state=tk.NORMAL)
         self.stop_btn.config(state=tk.NORMAL); self.progress_value.set(0)
@@ -259,38 +260,40 @@ class KyoQAToolApp(tk.Tk):
         if self.result_file_path: open_file(self.result_file_path)
 
     def open_pattern_manager(self):
-        ReviewWindow(self, "MODEL_PATTERNS", "Model Patterns", None)
+        ReviewWindow(self, "MODEL_PATTERNS", "Model Patterns", [], 0)
 
     def open_review_for_selected_file(self, event=None):
         """Definitive fix for the review process initiator."""
         selection = self.review_tree.selection()
         if not selection: return
         
-        filename = self.review_tree.item(selection[0], "values")[0]
-        review_info = next((f for f in self.reviewable_files if f["filename"] == filename), None)
+        selected_iid = selection[0]
+        # Find the index of the selected item in our internal list
+        try:
+            selected_index = [item['filename'] for item in self.reviewable_files].index(selected_iid)
+        except ValueError:
+            return # Item not found in our list
         
-        if not review_info:
-            messagebox.showerror("Error", f"Could not find review data for '{filename}'.")
-            return
-            
-        # --- DEFINITIVE FIX: Read the text from the provided path ---
-        txt_path = Path(review_info.get("txt_path", ""))
-        if txt_path.exists():
-            review_info['text'] = txt_path.read_text(encoding='utf-8')
-        else:
-            review_info['text'] = "Error: Could not find the extracted text file for review."
-            self.log_message(f"ERROR: Review text file not found at {txt_path}", "error")
-
-        ReviewWindow(self, "MODEL_PATTERNS", "Model Patterns", review_info)
+        # Pass the full list and the index of the selected item
+        ReviewWindow(self, "MODEL_PATTERNS", "Model Patterns", self.reviewable_files, selected_index)
             
     def rerun_flagged_job(self):
+        """Definitive fix for the re-run feature to prevent crashes."""
         if not self.reviewable_files:
             messagebox.showinfo("No Files", "There are no files flagged for re-run.")
             return
         if not self.result_file_path:
             messagebox.showerror("Error", "The previous result file path is not available for re-run. Please run a full job first.")
             return
+            
+        # Clear the UI list and counters for the re-run
+        self.review_tree.delete(*self.review_tree.get_children())
+        self.count_review.set(0)
+        self.count_fail.set(0) # Also reset fail counter
+        
         files_to_rerun = [item["pdf_path"] for item in self.reviewable_files]
+        self.reviewable_files.clear() # Clear the old data
+        
         self.log_message(f"Re-running {len(files_to_rerun)} flagged files...")
         self.start_processing(job={"excel_path": self.result_file_path, "input_path": files_to_rerun, "is_rerun": True})
 
