@@ -42,6 +42,7 @@ def init_tesseract():
                 return True
         
         try:
+            # Check if tesseract is in the system PATH
             output = os.popen("tesseract --version").read()
             if "tesseract" in output.lower():
                 log_info(logger, "Tesseract found in system PATH")
@@ -70,13 +71,12 @@ def check_pdf_protection(pdf_path):
     Returns:
         tuple: (is_protected, protection_type, error_message)
     """
-    pdf_path = Path(pdf_path)
+    pdf_path_str = str(Path(pdf_path).resolve())
     
     # Method 1: Try pikepdf first (most reliable for password detection)
     if PIKEPDF_AVAILABLE:
         try:
-            # FIX: Convert Path object to string for robust file handling
-            with pikepdf.open(str(pdf_path)) as pdf:
+            with pikepdf.open(pdf_path_str) as pdf:
                 if pdf.is_encrypted:
                     return True, "encrypted", "PDF is password-protected (detected by pikepdf)"
                 return False, "none", None
@@ -85,14 +85,12 @@ def check_pdf_protection(pdf_path):
         except pikepdf.PdfError as e:
             if "password" in str(e).lower() or "encrypt" in str(e).lower():
                 return True, "encrypted", f"PDF is protected: {str(e)}"
-            # Continue to other methods if it's not a protection issue
         except Exception as e:
-            log_warning(logger, f"pikepdf check failed for {pdf_path.name}: {e}")
+            log_warning(logger, f"pikepdf check failed for {Path(pdf_path).name}: {e}")
     
     # Method 2: Try PyMuPDF as fallback
     try:
-        # FIX: Convert Path object to string for robust file handling
-        with fitz.open(str(pdf_path)) as doc:
+        with fitz.open(pdf_path_str) as doc:
             if doc.is_encrypted:
                 return True, "encrypted", "PDF is encrypted (detected by PyMuPDF)"
             if hasattr(doc, 'needs_pass') and doc.needs_pass:
@@ -101,7 +99,6 @@ def check_pdf_protection(pdf_path):
     except Exception as e:
         if "password" in str(e).lower() or "encrypt" in str(e).lower():
             return True, "unknown", f"PDF appears protected: {str(e)}"
-        # If it's not a protection issue, it might be corruption
         return False, "none", None
     
     return False, "none", None
@@ -115,23 +112,17 @@ def process_single_document(pdf_path):
         
     Returns:
         tuple: (status, failure_reason, extracted_text)
-        - status: "success", "protected", "corrupted", "ocr_failed", "no_text", "error"
-        - failure_reason: Human-readable string explaining any failure, None if success
-        - extracted_text: Extracted text content, empty string if failed
     """
     pdf_path = Path(pdf_path)
     
     try:
-        # Step 1: Check for PDF protection first
         is_protected, protection_type, error_msg = check_pdf_protection(pdf_path)
         if is_protected:
             log_warning(logger, f"Protected PDF detected: {pdf_path.name} - {error_msg}")
             return "protected", f"File is password protected: {error_msg}", ""
         
-        # Step 2: Try direct text extraction first
         try:
-            # FIX: Convert Path object to string for robust file handling
-            with fitz.open(str(pdf_path)) as doc:
+            with fitz.open(str(pdf_path.resolve())) as doc:
                 if not doc.is_pdf:
                     return "corrupted", "File is not a valid PDF document", ""
                 
@@ -149,7 +140,6 @@ def process_single_document(pdf_path):
             else:
                 log_warning(logger, f"Direct text extraction failed for {pdf_path.name}: {e}")
         
-        # Step 3: Fallback to OCR if direct extraction failed
         if not TESSERACT_AVAILABLE:
             return "ocr_failed", "No text found in PDF and Tesseract OCR is not available", ""
         
@@ -172,26 +162,24 @@ def process_single_document(pdf_path):
         log_error(logger, f"Unexpected error processing {pdf_path.name}: {e}")
         return "error", f"Unexpected processing error: {str(e)}", ""
 
-def _is_ocr_needed(pdf_path):
+def _is_ocr_needed(pdf_path_str: str):
     """Pre-checks a PDF to see if it's image-based and likely requires OCR."""
     try:
-        # First check for protection
-        is_protected, protection_type, error_msg = check_pdf_protection(pdf_path)
+        is_protected, _, error_msg = check_pdf_protection(pdf_path_str)
         if is_protected:
             raise PDFProtectionError(error_msg)
         
-        # FIX: Convert Path object to string for robust file handling
-        with fitz.open(str(pdf_path)) as doc:
+        with fitz.open(pdf_path_str) as doc:
             if not doc.is_pdf:
-                raise PDFCorruptionError(f"File {Path(pdf_path).name} is not a valid PDF")
+                raise PDFCorruptionError(f"File {Path(pdf_path_str).name} is not a valid PDF")
             
             text_length = sum(len(page.get_text("text")) for page in doc)
             if text_length < 150:
                 return True
     except PDFProtectionError:
-        raise  # Re-raise protection errors
+        raise
     except Exception as e:
-        log_warning(logger, f"Could not pre-check PDF {Path(pdf_path).name} for OCR needs: {e}")
+        log_warning(logger, f"Could not pre-check PDF {Path(pdf_path_str).name} for OCR needs: {e}")
         return True
     return False
 
@@ -219,56 +207,42 @@ def extract_text_with_ocr(pdf_path):
         return "", "Tesseract OCR is not available on this system"
         
     all_text = []
-    pdf_path = Path(pdf_path)
+    pdf_path_str = str(Path(pdf_path).resolve())
     
     try:
-        # FIX: Convert Path object to string for robust file handling
-        with fitz.open(str(pdf_path)) as doc:
+        with fitz.open(pdf_path_str) as doc:
             for page_num, page in enumerate(doc):
                 try:
-                    # Render page at high DPI for better OCR accuracy
                     pix = page.get_pixmap(dpi=300)
                     img_data = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.h, pix.w, pix.n)
                     
-                    # Convert to OpenCV format
-                    if img_data.shape[2] == 4:  # RGBA
+                    if img_data.shape[2] == 4:
                         img_cv = cv2.cvtColor(img_data, cv2.COLOR_RGBA2BGR)
-                    else:  # RGB
+                    else:
                         img_cv = cv2.cvtColor(img_data, cv2.COLOR_RGB2BGR)
 
-                    # Advanced image preprocessing for better OCR
                     gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
-                    
-                    # Apply adaptive thresholding
                     binary_img = cv2.adaptiveThreshold(
                         gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
                     )
-                    
-                    # Noise reduction
                     denoised = cv2.medianBlur(binary_img, 3)
                     
-                    # OCR with optimized settings
-                    custom_config = r'--oem 3 --psm 6 -c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,;:!?-_()[]{}@#$%^&*+=<>/\|'
+                    custom_config = r'--oem 3 --psm 6'
                     page_text = pytesseract.image_to_string(denoised, lang='eng', config=custom_config)
                     
                     if page_text.strip():
                         all_text.append(page_text.strip())
-                        log_info(logger, f"OCR processed page {page_num+1} of {pdf_path.name} successfully")
-                    else:
-                        log_warning(logger, f"No text found on page {page_num+1} of {pdf_path.name}")
-                    
                 except Exception as e:
-                    log_warning(logger, f"OCR failed for page {page_num+1} of {pdf_path.name}: {e}")
+                    log_warning(logger, f"OCR failed for page {page_num+1} of {Path(pdf_path).name}: {e}")
                     continue
                 
         result = "\n\n".join(all_text)
         
         if result.strip():
-            log_info(logger, f"OCR extraction complete for {pdf_path.name}: {len(result)} characters extracted")
             return result, None
         else:
             return "", "OCR completed but no readable text was extracted from any page"
             
     except Exception as e:
-        log_error(logger, f"OCR extraction failed for {pdf_path.name}: {e}")
+        log_error(logger, f"OCR extraction failed for {Path(pdf_path).name}: {e}")
         return "", f"OCR processing failed: {str(e)}"

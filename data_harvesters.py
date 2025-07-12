@@ -1,12 +1,20 @@
-# data_harvesters.py - Enhanced model detection with post-processing filter and forced pattern reloading
-# Updated: 2024-07-09 - FIX: Corrected regex syntax in the default pattern file creation.
+# data_harvesters.py - Enhanced model detection with more robust patterns and smarter filtering.
+# This version is designed to fix the model extraction failures.
+
 import re
 import importlib
-import sys
 from pathlib import Path
 
-# Import the custom_patterns module here so we can reload it
-import custom_patterns
+# Import the custom_patterns module so we can reload it
+try:
+    import custom_patterns
+except ImportError:
+    # Create a dummy module if it doesn't exist to prevent launch errors
+    from types import ModuleType
+    custom_patterns = ModuleType("custom_patterns")
+    custom_patterns.MODEL_PATTERNS = []
+    custom_patterns.QA_NUMBER_PATTERNS = []
+
 from config import (
     MODEL_PATTERNS as DEFAULT_MODEL_PATTERNS,
     QA_NUMBER_PATTERNS as DEFAULT_QA_PATTERNS,
@@ -16,61 +24,49 @@ from config import (
 )
 
 def ensure_custom_patterns_file():
-    """Ensure custom_patterns.py exists with proper structure."""
+    """Ensures custom_patterns.py exists. If not, creates it with robust defaults."""
     custom_patterns_path = Path("custom_patterns.py")
-    
-    if not custom_patterns_path.exists():
-        # FIX: Corrected the regex syntax from \\b to \b in the default content.
-        default_content = '''# custom_patterns.py
-# This file stores user-defined regex patterns.
+    if custom_patterns_path.exists():
+        return True
+
+    print("🔧 custom_patterns.py not found. Creating with enhanced default patterns.")
+    # --- FIX: Added more comprehensive default patterns ---
+    default_content = '''# custom_patterns.py
+# This file stores user-defined regex patterns for Kyocera models.
+# Use raw strings (r'...') for all patterns.
 
 MODEL_PATTERNS = [
-    # Common additional patterns for better coverage
-    r'\\bFS-\\d+[A-Z]*\\b',          # FS-1135MFP, FS-C5250DN
-    r'\\bKM-\\d+[A-Z]*\\b',          # KM-2560, KM-C2520
-    r'\\bECOSYS\\s+[A-Z]+\\d+[a-z]*\\b',  # ECOSYS P3055dn, ECOSYS MA2100cfx
-    r'\\bTASKalfa\\s+\\d+[a-z]*i?\\b', # TASKalfa 8000i, TASKalfa 3212i
-    r'\\bPF-\\d+\\b',                # PF-740, PF-770
-    r'\\bDF-\\d+\\b',                # DF-780
-    r'\\bMK-\\d+\\b',                # MK-726
-    r'\\bDV-\\d+\\b',                # DV-1150, DV-1160
+    # General TASKalfa and ECOSYS
+    r'\\bTASKalfa\\s+\\d+[a-z]*i?\\b',          # e.g., TASKalfa 8000i, TASKalfa 3212i
+    r'\\bECOSYS\\s+[A-Z]+\\d+[a-z]*\\b',      # e.g., ECOSYS P3055dn, ECOSYS MA2100cfx
+
+    # FS-Series (including FS-C)
+    r'\\bFS-C?\\d+[A-Z]*[a-z]*\\b',         # e.g., FS-C5250DN, FS-1135MFP
+
+    # KM-Series
+    r'\\bKM-\\d+[A-Z]*\\b',                  # e.g., KM-2560, KM-C2520
+
+    # Accessories (PF, DF, etc.)
+    r'\\b(PF|DF|MK|DV|AK|JS)-\\d+\\w*\\b',   # e.g., PF-740, DF-780, MK-726
+
+    # Newer TASKalfa Pro series
+    r'\\bTASKalfa\\s+Pro\\s+\\d+c?\\b',      # e.g., TASKalfa Pro 15000c
 ]
 
 QA_NUMBER_PATTERNS = [
-    r'\\bQA-\\d+\\b',                # QA-12345
-    r'\\bSB-\\d+\\b',                # SB-67890
+    r'\\bQA[-_]?\\w+\\b',                     # e.g., QA-12345, QA_I168
+    r'\\bSB[-_]?\\w+\\b',                     # e.g., SB-67890
 ]
 '''
-        try:
-            custom_patterns_path.write_text(default_content, encoding='utf-8')
-            print("✅ Created enhanced custom_patterns.py with correct default patterns")
-        except Exception as e:
-            print(f"❌ Failed to create custom_patterns.py: {e}")
-            return False
-
     try:
-        importlib.reload(custom_patterns)
+        custom_patterns_path.write_text(default_content, encoding='utf-8')
+        return True
     except Exception as e:
-        print(f"❌ Error reloading custom_patterns: {e}")
+        print(f"❌ Failed to create custom_patterns.py: {e}")
         return False
 
-    for attr in ("MODEL_PATTERNS", "QA_NUMBER_PATTERNS"):
-        patterns = getattr(custom_patterns, attr, [])
-        valid_patterns = []
-        for pattern in patterns:
-            try:
-                re.compile(pattern)
-                valid_patterns.append(pattern)
-            except re.error as exc:
-                print(f"❌ Invalid regex in {attr}: {pattern!r} -> {exc}")
-        setattr(custom_patterns, attr, valid_patterns)
-
-    return True
-
 def get_combined_patterns(pattern_name: str, default_patterns: list) -> list:
-    """
-    Loads patterns from custom_patterns.py, forcing a reload to get the latest changes.
-    """
+    """Loads patterns from custom_patterns.py, forcing a reload to get the latest changes."""
     custom_patterns_list = []
     
     if not ensure_custom_patterns_file():
@@ -78,28 +74,15 @@ def get_combined_patterns(pattern_name: str, default_patterns: list) -> list:
         return default_patterns
     
     try:
-        # Force a reload of the custom_patterns module to ensure the latest
-        # patterns from the file are used, especially during re-runs.
         importlib.reload(custom_patterns)
-        
         custom_patterns_list = getattr(custom_patterns, pattern_name, [])
-        print(f"✅ Reloaded and loaded {len(custom_patterns_list)} custom {pattern_name}")
-            
+        print(f"✅ Reloaded and loaded {len(custom_patterns_list)} custom {pattern_name} patterns.")
     except Exception as e:
         print(f"❌ Unexpected error reloading custom patterns: {e}")
     
-    # Combine patterns: custom patterns first, then default patterns not already in custom
-    combined_patterns = []
-    for pattern in custom_patterns_list:
-        if pattern and pattern not in combined_patterns:
-            combined_patterns.append(pattern)
-    
-    for pattern in default_patterns:
-        if pattern and pattern not in combined_patterns:
-            combined_patterns.append(pattern)
-    
-    print(f"📊 Pattern summary for {pattern_name}: {len(custom_patterns_list)} custom + {len(default_patterns)} default = {len(combined_patterns)} total")
-    return combined_patterns
+    combined = list(dict.fromkeys(custom_patterns_list + default_patterns))
+    print(f"📊 Pattern summary for {pattern_name}: {len(combined)} total unique patterns.")
+    return combined
 
 def is_excluded(text: str) -> bool:
     """Checks if a string contains any of the unwanted exclusion patterns."""
@@ -112,60 +95,48 @@ def clean_model_string(model_str: str) -> str:
         cleaned = cleaned.replace(rule, replacement)
     return cleaned
 
-def extract_models_with_fallback_patterns(text: str, filename: str) -> set:
-    """Enhanced model extraction with fallback patterns for better coverage."""
-    models = set()
+def harvest_models(text: str, filename: str) -> list:
+    """Enhanced model harvesting with smarter filtering and more robust patterns."""
+    print(f"\n🔍 Harvesting models from: {filename}")
+    
+    # Use the improved pattern loader
     patterns = get_combined_patterns("MODEL_PATTERNS", DEFAULT_MODEL_PATTERNS)
+    
+    # Search both the document text and the filename itself
     search_contents = [text, filename.replace("_", " ")]
     
+    # --- Stage 1: Find all potential matches ---
+    all_found_models = set()
     for content in search_contents:
-        if not content:
-            continue
+        if not content: continue
         for pattern in patterns:
             try:
                 matches = re.findall(pattern, content, re.IGNORECASE)
                 for match in matches:
-                    if isinstance(match, tuple):
-                        match = match[0] if match else ""
-                    if match and not is_excluded(match):
-                        cleaned_match = clean_model_string(match)
+                    # Handle cases where regex returns tuples (from capture groups)
+                    match_str = match[0] if isinstance(match, tuple) else match
+                    if match_str and not is_excluded(match_str):
+                        cleaned_match = clean_model_string(match_str)
                         if cleaned_match:
-                            models.add(cleaned_match)
+                            all_found_models.add(cleaned_match)
             except re.error as e:
-                print(f"❌ Invalid regex pattern '{pattern}': {e}")
+                print(f"❌ Invalid regex pattern skipped: '{pattern}' -> {e}")
                 continue
-    
-    if not models:
-        # This fallback logic is intentionally left out of the main fix for now
-        # to ensure that files correctly go to review if primary patterns fail.
-        pass
-    
-    return models
 
-def harvest_models(text: str, filename: str) -> list:
-    """
-    Enhanced model harvesting with a post-processing filter to remove invalid results.
-    """
-    print(f"\n🔍 Harvesting models from: {filename}")
-    
-    all_found_models = extract_models_with_fallback_patterns(text, filename)
-    
+    # --- Stage 2: Apply smarter filtering ---
     final_models = set()
     for model in all_found_models:
-        model_stripped = model.strip()
-        
-        if len(model_stripped) <= 2:
-            print(f"   - Filtering out short model: '{model_stripped}'")
-            continue
-
-        has_digit = any(char.isdigit() for char in model_stripped)
-        has_hyphen = '-' in model_stripped
-
-        if not has_digit and not has_hyphen:
-            print(f"   - Filtering out model with no digits or hyphen: '{model_stripped}'")
+        # Rule: Must contain at least one digit
+        if not any(char.isdigit() for char in model):
+            print(f"   - Filtering out (no digits): '{model}'")
             continue
         
-        final_models.add(model_stripped)
+        # Rule: Must be a reasonable length (e.g., more than 3 characters)
+        if len(model) <= 3:
+            print(f"   - Filtering out (too short): '{model}'")
+            continue
+            
+        final_models.add(model)
 
     found_models = sorted(list(final_models))
     
@@ -179,27 +150,21 @@ def harvest_models(text: str, filename: str) -> list:
     return found_models
 
 def harvest_qa_numbers(text: str, filename: str) -> list:
-    """Finds all unique QA numbers from text and filename."""
+    """Finds all unique QA/SB numbers from text and filename."""
     qa_numbers = set()
     patterns = get_combined_patterns("QA_NUMBER_PATTERNS", DEFAULT_QA_PATTERNS)
     
-    if not patterns:
-        return []
-    
     search_contents = [text, filename.replace("_", " ")]
     for content in search_contents:
-        if not content:
-            continue
+        if not content: continue
         for pattern in patterns:
             try:
                 matches = re.findall(pattern, content, re.IGNORECASE)
                 for match in matches:
-                    if isinstance(match, tuple):
-                        match = match[0] if match else ""
                     if match and not is_excluded(match):
                         qa_numbers.add(match.strip())
             except re.error as e:
-                print(f"❌ Invalid regex pattern '{pattern}': {e}")
+                print(f"❌ Invalid QA regex pattern skipped: '{pattern}' -> {e}")
                 continue
     
     return sorted(list(qa_numbers))
@@ -214,7 +179,7 @@ def harvest_author(text: str) -> str:
     return ""
 
 def harvest_all_data(text: str, filename: str) -> dict:
-    """Main harvester function that orchestrates the data extraction and filtering."""
+    """Main harvester function that orchestrates the data extraction."""
     models_list = harvest_models(text, filename)
     models_str = ", ".join(models_list) if models_list else "Not Found"
     
@@ -236,13 +201,3 @@ def harvest_all_data(text: str, filename: str) -> dict:
         print(f"   QA Numbers: {qa_str}")
     
     return result
-
-if __name__ == "__main__":
-    test_text = """
-    Document contains the following equipment:
-    TASKalfa 8000i printer, BF, DF, PF-740
-    ECOSYS P3055dn device  
-    FS-C8025DN, KM-2560, KM-C2520, and also DP.
-    """
-    print("🧪 Testing enhanced harvesting with filtering...")
-    harvest_all_data(test_text, "test_document.pdf")

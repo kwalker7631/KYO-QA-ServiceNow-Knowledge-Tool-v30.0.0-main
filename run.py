@@ -1,129 +1,102 @@
-# run.py - First AI Utility Launcher v30.0.0
-import sys
+# run.py - The single, definitive entry point for the KYO QA Tool.
+# This script ensures all dependencies and assets are ready before launch.
 import subprocess
+import sys
+import tkinter as tk
+from tkinter import messagebox
 from pathlib import Path
-import shutil
-import time
-import threading
 
-# --- Configuration ---
-VENV_DIR = Path(__file__).parent / "venv"
-REQUIREMENTS_FILE = Path(__file__).parent / "requirements.txt"
-MAIN_APP_SCRIPT = Path(__file__).parent / "kyo_qa_tool_app.py"
-MIN_PYTHON_VERSION = (3, 9)
+# --- Pre-flight Checks ---
 
-# --- ANSI Colors for "Bling" ---
-class Colors:
-    KYOCERA_RED = '\033[38;2;227;26;47m'  # The official Kyocera red
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-
-def print_header():
-    """Prints the new stylized ASCII art header for the AI Utility."""
-    # ASCII art text: F A I T
-    art = r"""
-.-----------------------------------------------------------------------.
-|      ::::::::::             :::          :::::::::::        :::    :::|
-|     :+:                  :+: :+:            :+:            :+:    :+: |
-|    +:+                 +:+   +:+           +:+            +:+    +:+  |
-|   :#::+::#           +#++:++#++:          +#+            +#+    +:+   |
-|  +#+                +#+     +#+          +#+            +#+    +#+    |
-| #+#                #+#     #+#          #+#            #+#    #+#     |
-|###                ###     ###      ###########         ########       |
-'-----------------------------------------------------------------------'
-"""
-    header = f"""
-{Colors.KYOCERA_RED}{art}{Colors.ENDC}
-============================================================
-    {Colors.BOLD}First AI Utility - Self-Contained & Private{Colors.ENDC}
-============================================================
-"""
-    print(header)
-
-def run_command_with_spinner(command, message):
-    """Runs a command silently while showing an engaging spinner message."""
-    spinner_chars = ['|', '/', '-', '\\']
-    process_done = threading.Event()
-
-    def spin():
-        i = 0
-        while not process_done.is_set():
-            sys.stdout.write(f"\r{Colors.YELLOW}{spinner_chars[i % len(spinner_chars)]}{Colors.ENDC} {message}")
-            sys.stdout.flush()
-            i += 1
-            time.sleep(0.1)
-
-    spinner_thread = threading.Thread(target=spin, daemon=True)
-    spinner_thread.start()
-
-    try:
-        subprocess.check_call(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        process_done.set()
-        spinner_thread.join()
-        sys.stdout.write(f"\r{Colors.GREEN}✓{Colors.ENDC} {message}... Done.          \n")
+def check_and_install_dependencies():
+    """Check for requirements.txt and install any missing packages."""
+    requirements_path = Path("requirements.txt")
+    if not requirements_path.exists():
+        print("⚠️ requirements.txt not found. Skipping dependency check.")
         return True
-    except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        process_done.set()
-        spinner_thread.join()
-        sys.stdout.write(f"\r{Colors.RED}✗{Colors.ENDC} {message}... Failed.          \n")
-        with open("startup_error.log", "a") as f:
-            f.write(f"Error running command {' '.join(map(str, command))}: {e}\n")
-        return False
 
-def get_venv_python_path():
-    """Gets the path to the Python executable in the virtual environment."""
-    return VENV_DIR / "Scripts" / "python.exe" if sys.platform == "win32" else VENV_DIR / "bin" / "python"
-
-def setup_environment():
-    """Checks Python version, creates venv, and installs dependencies with better feedback."""
-    print_header()
-
-    if sys.version_info < MIN_PYTHON_VERSION:
-        print(f"{Colors.RED}✗ Error: Python {'.'.join(map(str, MIN_PYTHON_VERSION))}+ is required. You have {sys.version}{Colors.ENDC}")
-        return False
-
-    venv_python = get_venv_python_path()
-    if not (VENV_DIR.exists() and venv_python.exists()):
-        print(f"{Colors.YELLOW}[INFO] First-time setup detected. This may take several minutes...{Colors.ENDC}")
-        if VENV_DIR.exists():
-            print("   - Removing incomplete environment...")
-            shutil.rmtree(VENV_DIR)
-        
-        if not run_command_with_spinner([sys.executable, "-m", "venv", str(VENV_DIR)], "Building local environment"):
-            return False
-        
-        print(f"{Colors.YELLOW}[INFO] Installing dependencies and crawlers...{Colors.ENDC}")
-        if not run_command_with_spinner([str(venv_python), "-m", "pip", "install", "-r", str(REQUIREMENTS_FILE)], "Calibrating dependencies"):
-            return False
-    else:
-        print(f"{Colors.GREEN}✓ Existing environment detected. Verifying integrity...{Colors.ENDC}")
-        time.sleep(1)
-    
-    print(f"{Colors.GREEN}✓ Environment is ready.{Colors.ENDC}")
-    return True
-
-def launch_application():
-    """Launches the main GUI application and waits for it to close."""
-    print(f"\n{Colors.GREEN}--- Launching Application ---{Colors.ENDC}")
-    print("[INFO] The tool is starting. You can minimize this console window.")
-    
-    venv_python = get_venv_python_path()
+    print("📦 Checking for required packages...")
     try:
-        subprocess.run([str(venv_python), str(MAIN_APP_SCRIPT)], check=True)
-        print(f"\n{Colors.GREEN}--- Application Closed Gracefully ---{Colors.ENDC}")
+        # Use pip to check for missing packages and install them.
+        # The '--quiet' flag reduces verbose output.
+        subprocess.check_call(
+            [sys.executable, '-m', 'pip', 'install', '-r', str(requirements_path), '--quiet'],
+            stdout=subprocess.DEVNULL,
+        )
+        print("✅ All required packages are installed.")
+        return True
     except subprocess.CalledProcessError:
-        print(f"\n{Colors.RED}--- APPLICATION CRASHED ---{Colors.ENDC}")
-        print(f"{Colors.YELLOW}The application closed unexpectedly. Check for error messages or logs.{Colors.ENDC}")
-    except FileNotFoundError:
-        print(f"\n{Colors.RED}--- LAUNCH FAILED ---{Colors.ENDC}")
-        print(f"{Colors.YELLOW}Could not find the application script: {MAIN_APP_SCRIPT}{Colors.ENDC}")
+        messagebox.showerror(
+            "Dependency Error",
+            "Failed to install required packages from requirements.txt.\n"
+            "Please check your internet connection and ensure you have pip installed."
+        )
+        return False
+    except Exception as e:
+        messagebox.showerror("Dependency Error", f"An unexpected error occurred: {e}")
+        return False
+
+def check_assets():
+    """Ensure all required UI assets (like icons) exist, creating them if necessary."""
+    print("🎨 Checking for UI assets...")
+    try:
+        # We import the icon system here to ensure dependencies are ready.
+        from auto_icon_system import check_and_create_icons
+        if check_and_create_icons():
+            print("✅ All UI assets are ready.")
+            return True
+        else:
+            # The icon system will print its own errors.
+            # We show a message box as a final fallback.
+            messagebox.showwarning(
+                "Asset Warning",
+                "Could not create all required UI icons. The application will run, but some buttons may appear blank."
+            )
+            return True # Return True to allow the app to attempt to run anyway
+    except ImportError:
+        messagebox.showerror(
+            "Asset Error",
+            "The 'auto_icon_system.py' file is missing. Cannot verify UI assets."
+        )
+        return False
+    except Exception as e:
+        messagebox.showerror("Asset Error", f"An error occurred while checking assets: {e}")
+        return False
+
+# --- Main Application Launch ---
+
+def launch_main_application():
+    """Launch the main KyoQAToolApp window."""
+    print("🚀 Launching KYO QA Knowledge Tool...")
+    try:
+        # We import the main app here, after all checks have passed.
+        from kyo_qa_tool_app import KyoQAToolApp
+        app = KyoQAToolApp()
+        app.mainloop()
+    except Exception as e:
+        # This is the final safety net. If the app crashes on launch for any reason,
+        # this will catch it and display a helpful error message.
+        print(f"❌ A fatal error occurred during application launch: {e}")
+        import traceback
+        traceback.print_exc()
+        messagebox.showerror(
+            "Fatal Launch Error",
+            f"The application could not start.\n\n"
+            f"Error: {e}\n\n"
+            "Please check the console for more details."
+        )
 
 if __name__ == "__main__":
-    if setup_environment():
-        launch_application()
+    print("--- KYO QA Tool Launcher ---")
     
-    print("\nPress Enter to exit the launcher.")
-    input()
+    # Run all pre-flight checks. If any fail, the script will exit.
+    if not check_and_install_dependencies():
+        sys.exit(1)
+        
+    if not check_assets():
+        sys.exit(1)
+        
+    # If all checks pass, launch the main application.
+    launch_main_application()
+    
+    print("👋 Application closed. Goodbye!")

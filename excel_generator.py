@@ -1,198 +1,117 @@
-"""Generate a formatted Excel file for ServiceNow imports."""
-from __future__ import annotations
+# excel_generator.py - Definitive version with true cloning, styling, and robust data handling.
+# This version correctly preserves all data from the original template.
 
 import pandas as pd
-from openpyxl.styles import Alignment, Font, PatternFill
-from openpyxl.formatting.rule import FormulaRule
 import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.utils import get_column_letter
 import re
+from pathlib import Path
+import shutil
 
-from logging_utils import setup_logger, log_info, log_error
+from logging_utils import setup_logger, log_info, log_warning, log_error
 from custom_exceptions import ExcelGenerationError
+from config import META_COLUMN_NAME, AUTHOR_COLUMN_NAME, DESCRIPTION_COLUMN_NAME
 
 logger = setup_logger("excel_generator")
 
-ILLEGAL_CHARACTERS_RE = re.compile(r"[\000-\010\013\014\016-\037]")
-MAX_EXCEL_CELL_LENGTH = 32767
+ILLEGAL_CHARACTERS_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 
-NEEDS_REVIEW_FILL = PatternFill(
-    start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"
-)
-OCR_FILL = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
-FAILED_FILL = PatternFill(start_color="9C0006", end_color="9C0006", fill_type="solid")
-SUCCESS_FILL = PatternFill(fill_type=None)
-
-
-
-DEFAULT_TEMPLATE_HEADERS = [
-    "Active",
-    "Article type",
-    "Author",
-    "Category(category)",
-    "Configuration item",
-    "Confidence",
-    "Description",
-    "Attachment link",
-    "Disable commenting",
-    "Disable suggesting",
-    "Display attachments",
-    "Flagged",
-    "Governance",
-    "Category(kb_category)",
-    "Knowledge base",
-    "Meta",
-    "Meta Description",
-    "Ownership Group",
-    "Published",
-    "Scheduled publish date",
-    "Short description",
-    "Article body",
-    "Topic",
-    "Problem Code",
-    "models",
-    "Ticket#",
-    "Valid to",
-    "View as allowed",
-    "Wiki",
-    "Sys ID",
-    "file_name",
-    "Change Type",
-    "Revision",
-]
-
-
-
+# --- Style Definitions - Restored to match original flair ---
+HEADER_FONT = Font(bold=True, color="FFFFFF", name="Calibri", size=11)
+HEADER_FILL = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+CELL_FONT = Font(name="Calibri", size=11)
+STATUS_FILLS = {
+    "Success": PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"),
+    "Needs Review": PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid"),
+    "Failed": PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"),
+    "Protected": PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid"),
+    "Corrupted": PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"),
+    "OCR Failed": PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"),
+    "No Text Found": PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"),
+}
 
 def sanitize_for_excel(value):
+    """Sanitizes a value to be safely written to an Excel cell."""
     if isinstance(value, str):
-        cleaned = ILLEGAL_CHARACTERS_RE.sub("", value)
-        if len(cleaned) > MAX_EXCEL_CELL_LENGTH:
-            cleaned = cleaned[:MAX_EXCEL_CELL_LENGTH]
-        return cleaned
+        return ILLEGAL_CHARACTERS_RE.sub("", value)
     return value
 
-
-def apply_excel_styles(worksheet, df):
-    """Apply formatting and color-coding to the worksheet.
-
-    The DataFrame's index is reset to ensure rows line up with Excel rows
-    after any filtering or reordering operations."""
-    log_info(logger, "Applying formatting and conditional coloring...")
-    header_font = Font(bold=True)
-    status_colors = {
-        "Needs Review": NEEDS_REVIEW_FILL,
-        "OCR Required": OCR_FILL,
-        "Failed": FAILED_FILL,
-        "Success": SUCCESS_FILL,
-    }
-
-    df = df.reset_index(drop=True)
-
-    for row_idx, data_row in df.iterrows():
-        status = data_row.get("processing_status", "Success")
-        fill_color = status_colors.get(status, SUCCESS_FILL)
-        if fill_color.fill_type and (row_idx + 2) <= worksheet.max_row:
-            for cell in worksheet[row_idx + 2]:
-                cell.fill = fill_color
-
-    for cell in worksheet[1]:
-        cell.font = header_font
+def apply_styles(worksheet):
+    """Applies all formatting and conditional coloring."""
+    log_info(logger, "Applying professional formatting and styles...")
+    
+    header_row = worksheet[1]
+    for cell in header_row:
+        cell.font = HEADER_FONT
+        cell.fill = HEADER_FILL
+        cell.alignment = Alignment(horizontal="center", vertical="center")
 
     for row in worksheet.iter_rows(min_row=2):
         for cell in row:
-            cell.alignment = Alignment(
-                wrap_text=True, vertical="top", horizontal="left"
-            )
+            cell.font = CELL_FONT
+            cell.alignment = Alignment(wrap_text=True, vertical="top", horizontal="left")
 
-    for column_cells in worksheet.columns:
-        try:
-            max_length = max(
-                len(str(cell.value)) for cell in column_cells if cell.value
-            )
-            worksheet.column_dimensions[column_cells[0].column_letter].width = min(
-                (max_length + 2), 70
-            )
-        except (ValueError, TypeError):
-            continue
+    for i, column in enumerate(worksheet.columns, 1):
+        max_length = 0
+        for cell in column:
+            if cell.value:
+                try: max_length = max(max_length, len(str(cell.value)))
+                except: pass
+        adjusted_width = (max_length + 2)
+        worksheet.column_dimensions[get_column_letter(i)].width = min(adjusted_width, 70)
 
-    # Conditional formatting using the processing_status column if present
-    if "processing_status" in df.columns:
-        status_col_idx = df.columns.get_loc("processing_status") + 1
-        last_row = worksheet.max_row
-        worksheet.conditional_formatting.add(
-            f"A2:{worksheet.cell(row=last_row, column=len(df.columns)).coordinate}",
-            FormulaRule(
-                formula=[f'INDIRECT(ADDRESS(ROW(),{status_col_idx}))="Failed"'],
-                fill=FAILED_FILL,
-            ),
-        )
-
-
-class ExcelWriter:
-    """Write Excel files with status-based color coding."""
-
-    def __init__(self, path: str, headers: list[str]):
-        self.path = path
-        self.headers = headers
-        self.rows: list[dict] = []
-
-    def add_row(self, data: dict) -> None:
-        self.rows.append(data)
-
-    def save(self) -> None:
-        df = pd.DataFrame(self.rows, columns=self.headers)
-        with pd.ExcelWriter(self.path, engine="openpyxl") as writer:
-            df.to_excel(writer, index=False, sheet_name="ServiceNow Import")
-            apply_excel_styles(writer.sheets["ServiceNow Import"], df)
-            writer.save()  # persist workbook after applying styles
-
-def generate_excel(all_results, output_path, template_path=None):
-    """Generate a formatted Excel file for ServiceNow imports.
-
-    If ``template_path`` is provided an existing workbook is cloned and the
-    DataFrame is written into that workbook preserving its formatting.  When no
-    template is supplied, a fresh workbook is created instead.
+def generate_excel(all_results, output_path, template_path):
     """
-
+    Generates a formatted Excel file by cloning the template and merging new data.
+    """
     try:
         if not all_results:
-            raise ExcelGenerationError("No data to generate.")
+            raise ExcelGenerationError("No data was processed to generate an Excel file.")
+        
+        new_data_df = pd.DataFrame(all_results).applymap(sanitize_for_excel)
+        new_data_df['merge_key'] = new_data_df['file_name'].apply(lambda x: Path(x).stem)
+        new_data_df.set_index('merge_key', inplace=True)
 
-        df = pd.DataFrame(all_results)
-        df_sanitized = df.map(sanitize_for_excel)
-        headers = DEFAULT_TEMPLATE_HEADERS
+        if not template_path.exists():
+            raise ExcelGenerationError(f"Template file not found at: {template_path}")
+        
+        shutil.copy(template_path, output_path)
+        
+        workbook = openpyxl.load_workbook(output_path)
+        worksheet = workbook.active
 
-        final_df = pd.DataFrame(columns=headers)
-        for col in headers:
-            if col in df_sanitized.columns:
-                final_df[col] = df_sanitized[col]
+        header = [cell.value for cell in worksheet[1]]
+        desc_col_idx = header.index(DESCRIPTION_COLUMN_NAME) if DESCRIPTION_COLUMN_NAME in header else -1
+        meta_col_idx = header.index(META_COLUMN_NAME) if META_COLUMN_NAME in header else -1
+        author_col_idx = header.index(AUTHOR_COLUMN_NAME) if AUTHOR_COLUMN_NAME in header else -1
 
-        internal_cols = ["needs_review", "processing_status"]
-        df_to_save = final_df.drop(
-            columns=[c for c in internal_cols if c in final_df.columns], errors="ignore"
-        )
+        if desc_col_idx == -1:
+            raise ExcelGenerationError(f"Template missing required column: '{DESCRIPTION_COLUMN_NAME}'")
 
-        if template_path:
-            wb = openpyxl.load_workbook(template_path)
-            ws = wb.active
-            # remove any existing data rows (keep headers if present)
-            if ws.max_row > 1:
-                ws.delete_rows(2, ws.max_row - 1)
-            for r_idx, row in enumerate(
-                dataframe_to_rows(df_to_save, index=False, header=True), start=1
-            ):
-                for c_idx, value in enumerate(row, start=1):
-                    ws.cell(row=r_idx, column=c_idx, value=value)
-            apply_excel_styles(ws, df_sanitized)
-            wb.save(output_path)
-        else:
-            with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
-                df_to_save.to_excel(writer, index=False, sheet_name="ServiceNow Import")
-                apply_excel_styles(writer.sheets["ServiceNow Import"], df_sanitized)
-                writer.save()
+        for row_num, row_cells in enumerate(worksheet.iter_rows(min_row=2), start=2):
+            desc_val = row_cells[desc_col_idx].value
+            if not desc_val: continue
+            
+            row_key = Path(str(desc_val)).stem
+            if row_key in new_data_df.index:
+                new_row_data = new_data_df.loc[row_key]
+                
+                if meta_col_idx != -1 and META_COLUMN_NAME in new_row_data:
+                    worksheet.cell(row=row_num, column=meta_col_idx + 1).value = new_row_data[META_COLUMN_NAME]
+                if author_col_idx != -1 and AUTHOR_COLUMN_NAME in new_row_data:
+                    worksheet.cell(row=row_num, column=author_col_idx + 1).value = new_row_data[AUTHOR_COLUMN_NAME]
+                
+                if fill := STATUS_FILLS.get(new_row_data['processing_status']):
+                    for cell in row_cells:
+                        cell.fill = fill
 
-        log_info(logger, f"Successfully created formatted Excel file: {output_path}")
+        apply_styles(worksheet)
+        workbook.save(output_path)
+
+        log_info(logger, f"Successfully created cloned and updated Excel file: {output_path}")
         return str(output_path)
-    except Exception as e:  # pragma: no cover - log and raise
-        log_error(logger, f"Excel generation failed: {e}")
+
+    except Exception as e:
+        log_error(logger, f"Excel generation failed: {e}", exc_info=True)
         raise ExcelGenerationError(f"Failed to generate Excel file: {e}")
