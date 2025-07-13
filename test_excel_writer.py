@@ -1,3 +1,13 @@
+import pytest
+
+try:
+    from openpyxl import Workbook  # noqa: F401
+except Exception:
+    Workbook = None
+
+if Workbook is None:
+    pytest.skip("Required libraries not installed", allow_module_level=True)
+
 from excel_generator import ExcelWriter
 
 
