@@ -28,32 +28,50 @@ DEFAULT_BRAND_COLORS = {
 }
 for k, v in DEFAULT_BRAND_COLORS.items():
     BRAND_COLORS.setdefault(k, v)
+
+# ---------------------------------------------------------------------------
+# Dependency imports
+# ---------------------------------------------------------------------------
 try:
-    from .processing_engine import run_processing_job
-except Exception:  # pragma: no cover
     from processing_engine import run_processing_job
+except Exception:  # pragma: no cover - provide stub if dependencies missing
+    def run_processing_job(*_a, **_k):
+        print("[WARN] processing_engine not available; run_processing_job is a stub.")
+
 try:
-    from .file_utils import open_file, ensure_folders, cleanup_temp_files
-except Exception:  # pragma: no cover
     from file_utils import open_file, ensure_folders, cleanup_temp_files
+except Exception:  # pragma: no cover - basic fallbacks
+    def open_file(_p):
+        print(f"[WARN] open_file stub called for {_p}")
+
+    def ensure_folders():
+        print("[WARN] ensure_folders stub called")
+
+    def cleanup_temp_files():
+        print("[WARN] cleanup_temp_files stub called")
+
 try:
-    from .kyo_review_tool import ReviewWindow
-except Exception:  # pragma: no cover
     from kyo_review_tool import ReviewWindow
+except Exception:  # pragma: no cover - fallback stub
+    ReviewWindow = object
+
 try:
-    from .version import VERSION
-except Exception:  # pragma: no cover
     from version import VERSION
-try:
-    from . import logging_utils
 except Exception:  # pragma: no cover
+    VERSION = "0"
+
+try:
     import logging_utils
+except Exception:  # pragma: no cover
+    logging_utils = None
+
 try:
-    from .branding import KyoceraColors
-except Exception:  # pragma: no cover - fallback when running as script
     from branding import KyoceraColors
+except Exception:  # pragma: no cover
+    KyoceraColors = None
+
 try:
-    from .gui_components import (
+    from gui_components import (
         setup_high_contrast_styles,
         create_main_header,
         create_io_section,
@@ -64,41 +82,28 @@ try:
         create_harvest_tab,
         create_data_harvest_tab,
     )
-except Exception:  # pragma: no cover - allow tests to stub
-    try:
-        from gui_components import (
-            setup_high_contrast_styles,
-            create_main_header,
-            create_io_section,
-            create_controls_section,
-            create_live_status_section,
-            create_footer,
-            create_review_tab,
-            create_harvest_tab,
-            create_data_harvest_tab,
-        )
-    except Exception:
-        from gui_components import (
-            create_main_header,
-            create_io_section,
-            create_process_controls as create_controls_section,
-            create_status_and_log_section as create_live_status_section,
-        )
+except Exception:  # pragma: no cover - minimal fallbacks
+    from gui_components import (
+        create_main_header,
+        create_io_section,
+        create_process_controls as create_controls_section,
+        create_status_and_log_section as create_live_status_section,
+    )
 
-        def setup_high_contrast_styles(*_a, **_k):
-            pass
+    def setup_high_contrast_styles(*_a, **_k):
+        pass
 
-        def create_footer(*_a, **_k):
-            pass
+    def create_footer(*_a, **_k):
+        pass
 
-        def create_review_tab(*_a, **_k):
-            return None
+    def create_review_tab(*_a, **_k):
+        return None
 
-        def create_harvest_tab(*_a, **_k):
-            return None
+    def create_harvest_tab(*_a, **_k):
+        return None
 
-        def create_data_harvest_tab(*_a, **_k):
-            return None
+    def create_data_harvest_tab(*_a, **_k):
+        return None
 
 # Compatibility aliases for older function names
 create_process_controls = create_controls_section
@@ -120,6 +125,17 @@ def get_led_colors(status):
         "Error": (BRAND_COLORS.get("fail_red"), BRAND_COLORS.get("status_default_bg")),
     }
     return color_map.get(status, (BRAND_COLORS.get("kyocera_black"), BRAND_COLORS.get("status_default_bg")))
+
+
+def get_remaining_seconds(start_time: float, total_files: int, processed_files: int, now: float | None = None) -> int:
+    """Estimate remaining processing time in seconds."""
+    if processed_files <= 0:
+        return 0
+    now = now or time.time()
+    elapsed = now - start_time
+    time_per_file = elapsed / processed_files
+    remaining_files = max(total_files - processed_files, 0)
+    return int(time_per_file * remaining_files)
 
 class KyoQAToolApp(tk.Tk):
     def __init__(self):
