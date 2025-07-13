@@ -42,12 +42,22 @@ HEADER_FILL = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="s
 CELL_FONT = Font(name="Calibri", size=11)
 STATUS_FILLS = {
     "Success": PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"),
-    "Needs Review": PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid"),
+    "Needs Review": PatternFill(
+        start_color="FFEB9C", end_color="FFEB9C", fill_type="solid"
+    ),
     "Failed": PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"),
-    "Protected": PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid"),
-    "Corrupted": PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"),
-    "OCR Failed": PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"),
-    "No Text Found": PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"),
+    "Protected": PatternFill(
+        start_color="D9D9D9", end_color="D9D9D9", fill_type="solid"
+    ),
+    "Corrupted": PatternFill(
+        start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"
+    ),
+    "OCR Failed": PatternFill(
+        start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"
+    ),
+    "No Text Found": PatternFill(
+        start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"
+    ),
 }
 
 DEFAULT_TEMPLATE_PATH = Path("Sample_Set/kb_knowledge_Template.xlsx")
@@ -86,7 +96,6 @@ DEFAULT_TEMPLATE_HEADERS = [
     STATUS_COLUMN_NAME,
 ]
 
-
 class ExcelWriter:
     """Minimal Excel writer used for unit tests."""
 
@@ -112,10 +121,11 @@ def sanitize_for_excel(value):
         return ILLEGAL_CHARACTERS_RE.sub("", value)
     return value
 
+
 def apply_styles(worksheet):
     """Applies all formatting and conditional coloring."""
     log_info(logger, "Applying professional formatting and styles...")
-    
+
     header_row = worksheet[1]
     for cell in header_row:
         cell.font = HEADER_FONT
@@ -125,16 +135,23 @@ def apply_styles(worksheet):
     for row in worksheet.iter_rows(min_row=2):
         for cell in row:
             cell.font = CELL_FONT
-            cell.alignment = Alignment(wrap_text=True, vertical="top", horizontal="left")
+            cell.alignment = Alignment(
+                wrap_text=True, vertical="top", horizontal="left"
+            )
 
     for i, column in enumerate(worksheet.columns, 1):
         max_length = 0
         for cell in column:
             if cell.value:
-                try: max_length = max(max_length, len(str(cell.value)))
-                except: pass
-        adjusted_width = (max_length + 2)
-        worksheet.column_dimensions[get_column_letter(i)].width = min(adjusted_width, 70)
+                try:
+                    max_length = max(max_length, len(str(cell.value)))
+                except:
+                    pass
+        adjusted_width = max_length + 2
+        worksheet.column_dimensions[get_column_letter(i)].width = min(
+            adjusted_width, 70
+        )
+
 
 def generate_excel(all_results, output_path, template_path=Path("Sample_Set/kb_knowledge_Template.xlsx")):
     """
@@ -145,19 +162,22 @@ def generate_excel(all_results, output_path, template_path=Path("Sample_Set/kb_k
             raise ExcelGenerationError("Required libraries not installed")
 
         if not all_results:
-            raise ExcelGenerationError("No data was processed to generate an Excel file.")
-        
+            raise ExcelGenerationError(
+                "No data was processed to generate an Excel file."
+            )
+
         new_data_df = pd.DataFrame(all_results).applymap(sanitize_for_excel)
         if 'qa_numbers' in new_data_df.columns and QA_NUMBERS_COLUMN_NAME not in new_data_df.columns:
             new_data_df.rename(columns={'qa_numbers': QA_NUMBERS_COLUMN_NAME}, inplace=True)
         new_data_df['merge_key'] = new_data_df['file_name'].apply(lambda x: Path(x).stem)
         new_data_df.set_index('merge_key', inplace=True)
 
+
         if not template_path.exists():
             raise ExcelGenerationError(f"Template file not found at: {template_path}")
-        
+
         shutil.copy(template_path, output_path)
-        
+
         workbook = openpyxl.load_workbook(output_path)
         worksheet = workbook.active
         header = [cell.value for cell in worksheet[1]]
@@ -167,16 +187,22 @@ def generate_excel(all_results, output_path, template_path=Path("Sample_Set/kb_k
         qa_col_idx = header.index(QA_NUMBERS_COLUMN_NAME) if QA_NUMBERS_COLUMN_NAME in header else -1
 
         if desc_col_idx == -1:
-            raise ExcelGenerationError(f"Template missing required column: '{DESCRIPTION_COLUMN_NAME}'")
+            raise ExcelGenerationError(
+                f"Template missing required column: '{DESCRIPTION_COLUMN_NAME}'"
+            )
 
         for row_num, row_cells in enumerate(worksheet.iter_rows(min_row=2), start=2):
             desc_val = row_cells[desc_col_idx].value
-            if not desc_val: continue
-            
-            row_key = Path(str(desc_val)).stem
+            if not desc_val:
+                continue
+
+            # Allow template short descriptions prefixed with "Processed:" (case-insensitive) to
+            # merge correctly with new data indexed by file name.
+            row_text = re.sub(r"^Processed:\s*", "", str(desc_val), flags=re.IGNORECASE)
+            row_key = Path(row_text).stem
             if row_key in new_data_df.index:
                 new_row_data = new_data_df.loc[row_key]
-                
+
                 if meta_col_idx != -1 and META_COLUMN_NAME in new_row_data:
                     worksheet.cell(row=row_num, column=meta_col_idx + 1).value = new_row_data[META_COLUMN_NAME]
 
@@ -188,9 +214,11 @@ def generate_excel(all_results, output_path, template_path=Path("Sample_Set/kb_k
                     worksheet.cell(row=row_num, column=meta_col_idx + 1).value = f"{existing}{sep}{new_row_data['qa_numbers']}"
 
                 if author_col_idx != -1 and AUTHOR_COLUMN_NAME in new_row_data:
-                    worksheet.cell(row=row_num, column=author_col_idx + 1).value = new_row_data[AUTHOR_COLUMN_NAME]
-                
-                if fill := STATUS_FILLS.get(new_row_data['processing_status']):
+                    worksheet.cell(row=row_num, column=author_col_idx + 1).value = (
+                        new_row_data[AUTHOR_COLUMN_NAME]
+                    )
+
+                if fill := STATUS_FILLS.get(new_row_data["processing_status"]):
                     for cell in row_cells:
                         cell.fill = fill
             else:
@@ -202,7 +230,9 @@ def generate_excel(all_results, output_path, template_path=Path("Sample_Set/kb_k
         apply_styles(worksheet)
         workbook.save(output_path)
 
-        log_info(logger, f"Successfully created cloned and updated Excel file: {output_path}")
+        log_info(
+            logger, f"Successfully created cloned and updated Excel file: {output_path}"
+        )
         return str(output_path)
 
     except Exception as e:
