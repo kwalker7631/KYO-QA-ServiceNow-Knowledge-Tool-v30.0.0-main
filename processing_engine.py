@@ -58,6 +58,7 @@ def process_single_pdf(pdf_path: Path, progress_queue, ignore_cache: bool = Fals
         "review_info": None,
         "qa_numbers": "",
         "Short description": f"Processed: {filename}",
+        QA_NUMBERS_KEY: "",
     }
     start_time = time.time()
 
