@@ -8,33 +8,61 @@ import queue
 import time
 
 # Local Imports
-from config import BRAND_COLORS, ASSETS_DIR
+try:
+    from config import BRAND_COLORS, ASSETS_DIR
+except ImportError:  # pragma: no cover - allow tests to inject stub
+    BRAND_COLORS = {}
+    ASSETS_DIR = Path('.')
+
+DEFAULT_BRAND_COLORS = {
+    "accent_blue": "#0078D4",
+    "status_processing_bg": "#DDEEFF",
+    "fail_red": "#DA291C",
+    "status_default_bg": "#F8F8F8",
+    "kyocera_black": "#231F20",
+    "success_green": "#107C10",
+    "warning_orange": "#FFA500",
+}
+for k, v in DEFAULT_BRAND_COLORS.items():
+    BRAND_COLORS.setdefault(k, v)
 from processing_engine import run_processing_job
 from file_utils import open_file, ensure_folders, cleanup_temp_files
 from kyo_review_tool import ReviewWindow
 from version import VERSION
 import logging_utils
-from gui_components import (
-    create_main_header, create_io_section,
-    create_process_controls, create_status_and_log_section
-)
+try:
+    from gui_components import (
+        create_main_header,
+        create_io_section,
+        create_process_controls,
+        create_status_and_log_section,
+    )
+except Exception:  # pragma: no cover - allow tests to stub
+    from gui_components import (
+        create_main_header,
+        create_io_section,
+        create_process_controls,
+    )
+
+    def create_status_and_log_section(*_a, **_k):
+        return None, None
 
 logger = logging_utils.setup_logger("app")
 
 def get_led_colors(status):
     """Returns foreground and background colors for the status LED."""
     color_map = {
-        "Processing": ("#FFFFFF", BRAND_COLORS.get("accent_blue")),
-        "Saving": ("#FFFFFF", BRAND_COLORS.get("accent_blue")),
-        "OCR": ("#000000", BRAND_COLORS.get("status_ocr_bg")),
-        "AI": ("#FFFFFF", BRAND_COLORS.get("kyocera_red")),
-        "Paused": ("#000000", BRAND_COLORS.get("warning_orange")),
-        "Ready": ("#FFFFFF", BRAND_COLORS.get("success_green")),
-        "Complete": ("#FFFFFF", BRAND_COLORS.get("success_green")),
-        "Cancelled": ("#000000", BRAND_COLORS.get("warning_orange")),
-        "Error": ("#FFFFFF", BRAND_COLORS.get("fail_red")),
+        "Processing": (BRAND_COLORS.get("accent_blue"), BRAND_COLORS.get("status_processing_bg")),
+        "Saving": (BRAND_COLORS.get("accent_blue"), BRAND_COLORS.get("status_processing_bg")),
+        "OCR": (BRAND_COLORS.get("kyocera_black"), BRAND_COLORS.get("status_ocr_bg")),
+        "AI": (BRAND_COLORS.get("kyocera_red"), BRAND_COLORS.get("kyocera_red")),
+        "Paused": (BRAND_COLORS.get("warning_orange"), BRAND_COLORS.get("warning_orange")),
+        "Ready": (BRAND_COLORS.get("success_green"), BRAND_COLORS.get("status_default_bg")),
+        "Complete": (BRAND_COLORS.get("success_green"), BRAND_COLORS.get("status_default_bg")),
+        "Cancelled": (BRAND_COLORS.get("warning_orange"), BRAND_COLORS.get("warning_orange")),
+        "Error": (BRAND_COLORS.get("fail_red"), BRAND_COLORS.get("status_default_bg")),
     }
-    return color_map.get(status, ("#000000", BRAND_COLORS.get("status_default_bg")))
+    return color_map.get(status, (BRAND_COLORS.get("kyocera_black"), BRAND_COLORS.get("status_default_bg")))
 
 class KyoQAToolApp(tk.Tk):
     def __init__(self):
@@ -209,13 +237,15 @@ class KyoQAToolApp(tk.Tk):
         self.time_remaining_var.set("")
 
     def set_led(self, status):
-        style_name = f"{status}.Status.TFrame"
-        led_style_name = f"{status}.LED.TLabel"
-        text_style_name = f"{status}.Status.TLabel"
-        self.status_frame.configure(style=style_name)
-        self.led_label.configure(style=led_style_name)
+        fg, bg = get_led_colors(status)
+        if hasattr(self, "led_status_var"):
+            self.led_status_var.set("●")
+        if hasattr(self, "status_frame"):
+            self.status_frame.configure(background=bg)
+        if hasattr(self, "led_label"):
+            self.led_label.configure(foreground=fg, background=bg)
         if hasattr(self, 'status_text_label'):
-            self.status_text_label.configure(style=text_style_name)
+            self.status_text_label.configure(foreground=fg, background=bg)
 
     def on_closing(self):
         if self.is_processing and messagebox.askyesno("Exit Confirmation", "A job is currently running. Are you sure you want to exit?"):
