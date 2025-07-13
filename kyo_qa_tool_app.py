@@ -1,6 +1,7 @@
 # kyo_qa_tool_app.py - Definitive fix for UI feedback and review process logic.
 
 import logging
+import sys
 logging.getLogger(__name__).setLevel(logging.DEBUG)
 
 import tkinter as tk
