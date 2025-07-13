@@ -190,9 +190,9 @@ def generate_excel(all_results, output_path, template_path):
             if not desc_val:
                 continue
 
-            # Allow template short descriptions prefixed with "Processed:" to
+            # Allow template short descriptions prefixed with "Processed:" (case-insensitive) to
             # merge correctly with new data indexed by file name.
-            row_text = re.sub(r"^Processed:\s*", "", str(desc_val))
+            row_text = re.sub(r"^Processed:\s*", "", str(desc_val), flags=re.IGNORECASE)
             row_key = Path(row_text).stem
             if row_key in new_data_df.index:
                 new_row_data = new_data_df.loc[row_key]
