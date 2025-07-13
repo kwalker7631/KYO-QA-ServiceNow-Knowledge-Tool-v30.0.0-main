@@ -30,7 +30,6 @@ from config import (
     AUTHOR_COLUMN_NAME,
     DESCRIPTION_COLUMN_NAME,
     QA_NUMBERS_COLUMN_NAME,
-    STATUS_COLUMN_NAME,
 )
 
 logger = setup_logger("excel_generator")
@@ -135,7 +134,6 @@ def generate_excel(all_results, output_path, template_path=Path("Sample_Set/kb_k
         
         workbook = openpyxl.load_workbook(output_path)
         worksheet = workbook.active
-
         header = [cell.value for cell in worksheet[1]]
         desc_col_idx = header.index(DESCRIPTION_COLUMN_NAME) if DESCRIPTION_COLUMN_NAME in header else -1
         meta_col_idx = header.index(META_COLUMN_NAME) if META_COLUMN_NAME in header else -1
@@ -155,10 +153,16 @@ def generate_excel(all_results, output_path, template_path=Path("Sample_Set/kb_k
                 
                 if meta_col_idx != -1 and META_COLUMN_NAME in new_row_data:
                     worksheet.cell(row=row_num, column=meta_col_idx + 1).value = new_row_data[META_COLUMN_NAME]
+
+                if qa_col_idx != -1 and "qa_numbers" in new_row_data and new_row_data["qa_numbers"]:
+                    worksheet.cell(row=row_num, column=qa_col_idx + 1).value = new_row_data["qa_numbers"]
+                elif meta_col_idx != -1 and "qa_numbers" in new_row_data and new_row_data["qa_numbers"]:
+                    existing = worksheet.cell(row=row_num, column=meta_col_idx + 1).value or ""
+                    sep = " | " if existing else ""
+                    worksheet.cell(row=row_num, column=meta_col_idx + 1).value = f"{existing}{sep}{new_row_data['qa_numbers']}"
+
                 if author_col_idx != -1 and AUTHOR_COLUMN_NAME in new_row_data:
                     worksheet.cell(row=row_num, column=author_col_idx + 1).value = new_row_data[AUTHOR_COLUMN_NAME]
-                if qa_col_idx != -1 and QA_NUMBERS_COLUMN_NAME in new_row_data:
-                    worksheet.cell(row=row_num, column=qa_col_idx + 1).value = new_row_data[QA_NUMBERS_COLUMN_NAME]
                 
                 if fill := STATUS_FILLS.get(new_row_data['processing_status']):
                     for cell in row_cells:
