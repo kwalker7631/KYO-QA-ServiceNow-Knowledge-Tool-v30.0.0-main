@@ -10,7 +10,7 @@ import time
 # Local Imports
 try:
     from config import BRAND_COLORS, ASSETS_DIR
-except Exception:  # pragma: no cover - allow tests to inject stub
+except ImportError:  # pragma: no cover - allow tests to inject stub
     BRAND_COLORS = {}
     ASSETS_DIR = Path('.')
 
