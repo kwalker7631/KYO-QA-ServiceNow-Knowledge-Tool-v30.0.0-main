@@ -167,6 +167,11 @@ def generate_excel(all_results, output_path, template_path=Path("Sample_Set/kb_k
                 if fill := STATUS_FILLS.get(new_row_data['processing_status']):
                     for cell in row_cells:
                         cell.fill = fill
+            else:
+                log_warning(
+                    logger,
+                    f"Skipped template row {row_num} ({desc_val}) - no processed data found",
+                )
 
         apply_styles(worksheet)
         workbook.save(output_path)
