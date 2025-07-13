@@ -11,10 +11,12 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Optional
 
+# Use an absolute import so this module works both as part of a package and
+# when run from the repository root.
 try:
-    from .branding import KyoceraColors
-except Exception:  # pragma: no cover - support running outside package
     from branding import KyoceraColors
+except Exception:  # pragma: no cover - support running outside package
+    KyoceraColors = None
 
 # ---------------------------------------------------------------------------
 # Style helpers
