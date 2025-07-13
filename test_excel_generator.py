@@ -14,9 +14,43 @@ except Exception:
 if pd is None or load_workbook is None:
     pytest.skip("Required libraries not installed", allow_module_level=True)
 
-from excel_generator import generate_excel, DEFAULT_TEMPLATE_HEADERS
-from config import QA_COLUMN_NAME
+from excel_generator import generate_excel
+from config import META_COLUMN_NAME, QA_NUMBERS_COLUMN_NAME
 
+DEFAULT_TEMPLATE_HEADERS = [
+    "Active",
+    "Article type",
+    "Author",
+    "Category(category)",
+    "Configuration item",
+    "Confidence",
+    "Description",
+    "Attachment link",
+    "Disable commenting",
+    "Disable suggesting",
+    "Display attachments",
+    "Flagged",
+    "Governance",
+    "Category(kb_category)",
+    "Knowledge Base",
+    "Meta",
+    "Meta Description",
+    "Ownership Group",
+    "Published",
+    "Scheduled publish date",
+    "Short description",
+    "Article body",
+    "Topic",
+    "Problem Code",
+    "Product Description",
+    "Ticket#",
+    "Valid to",
+    "View as allowed",
+    "Wiki",
+    "Sys ID",
+    "Process Status",
+    "Needs Review",
+]
 
 def test_generate_excel_headers(tmp_path):
     sample_df = pd.DataFrame([
@@ -47,7 +81,6 @@ def test_generate_excel_with_template(tmp_path):
     assert ws.max_row == 2
     sd_index = DEFAULT_TEMPLATE_HEADERS.index("Short description") + 1
     assert ws.cell(row=2, column=sd_index).value == "Test"
-
 
 def test_qa_numbers_written_when_column_present(tmp_path):
     sample_df = pd.DataFrame([
