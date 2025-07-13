@@ -10,6 +10,7 @@ A powerful desktop application for automating the extraction of key information 
 - **Dynamic Pattern Management**: Add and manage custom regex patterns through the built-in Pattern Manager
 - **Real-time Progress Tracking**: Color-coded status indicators, progress bars, and detailed logs
 - **Excel Integration**: Updates ServiceNow-compatible Excel files with extracted data
+- **QA Numbers Column**: QA numbers are written only if your template has a column named as `QA_COLUMN_NAME`
 - **Smart Caching**: Speeds up reprocessing with intelligent result caching
 - **Review System**: Flag and review documents that need manual attention
 
@@ -99,8 +100,11 @@ KYO_QA_ServiceNow_Knowledge_Tool_v30.0.0/
 Edit `config.py` to customize:
 - Extraction patterns
 - Excel column mappings
+- QA column name for QA numbers
 - UI colors and branding
 - Directory paths
+
+QA numbers will only be written if your Excel template contains a column matching `QA_COLUMN_NAME`.
 
 ## Troubleshooting
 

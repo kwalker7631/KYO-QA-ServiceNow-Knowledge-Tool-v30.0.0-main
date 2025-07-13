@@ -11,7 +11,12 @@ import shutil
 
 from logging_utils import setup_logger, log_info, log_warning, log_error
 from custom_exceptions import ExcelGenerationError
-from config import META_COLUMN_NAME, AUTHOR_COLUMN_NAME, DESCRIPTION_COLUMN_NAME
+from config import (
+    META_COLUMN_NAME,
+    AUTHOR_COLUMN_NAME,
+    QA_COLUMN_NAME,
+    DESCRIPTION_COLUMN_NAME,
+)
 
 logger = setup_logger("excel_generator")
 
@@ -85,6 +90,7 @@ def generate_excel(all_results, output_path, template_path):
         desc_col_idx = header.index(DESCRIPTION_COLUMN_NAME) if DESCRIPTION_COLUMN_NAME in header else -1
         meta_col_idx = header.index(META_COLUMN_NAME) if META_COLUMN_NAME in header else -1
         author_col_idx = header.index(AUTHOR_COLUMN_NAME) if AUTHOR_COLUMN_NAME in header else -1
+        qa_col_idx = header.index(QA_COLUMN_NAME) if QA_COLUMN_NAME in header else -1
 
         if desc_col_idx == -1:
             raise ExcelGenerationError(f"Template missing required column: '{DESCRIPTION_COLUMN_NAME}'")
@@ -101,6 +107,8 @@ def generate_excel(all_results, output_path, template_path):
                     worksheet.cell(row=row_num, column=meta_col_idx + 1).value = new_row_data[META_COLUMN_NAME]
                 if author_col_idx != -1 and AUTHOR_COLUMN_NAME in new_row_data:
                     worksheet.cell(row=row_num, column=author_col_idx + 1).value = new_row_data[AUTHOR_COLUMN_NAME]
+                if qa_col_idx != -1 and 'qa_numbers' in new_row_data:
+                    worksheet.cell(row=row_num, column=qa_col_idx + 1).value = new_row_data['qa_numbers']
                 
                 if fill := STATUS_FILLS.get(new_row_data['processing_status']):
                     for cell in row_cells:

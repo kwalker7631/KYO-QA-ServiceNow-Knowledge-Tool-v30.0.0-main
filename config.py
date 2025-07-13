@@ -42,5 +42,6 @@ STANDARDIZATION_RULES = {"TASKalfa-": "TASKalfa ", "ECOSYS-": "ECOSYS "}
 # --- EXCEL MAPPING ---
 META_COLUMN_NAME = "Meta"
 AUTHOR_COLUMN_NAME = "Author"
+QA_COLUMN_NAME = "QA Numbers"
 DESCRIPTION_COLUMN_NAME = "Short description"
 STATUS_COLUMN_NAME = "Processing Status"

@@ -15,6 +15,7 @@ if pd is None or load_workbook is None:
     pytest.skip("Required libraries not installed", allow_module_level=True)
 
 from excel_generator import generate_excel, DEFAULT_TEMPLATE_HEADERS
+from config import QA_COLUMN_NAME
 
 
 def test_generate_excel_headers(tmp_path):
@@ -46,3 +47,53 @@ def test_generate_excel_with_template(tmp_path):
     assert ws.max_row == 2
     sd_index = DEFAULT_TEMPLATE_HEADERS.index("Short description") + 1
     assert ws.cell(row=2, column=sd_index).value == "Test"
+
+
+def test_qa_numbers_written_when_column_present(tmp_path):
+    sample_df = pd.DataFrame([
+        {
+            "file_name": "test.pdf",
+            "Short description": "test",
+            "qa_numbers": "QA-1",
+        }
+    ])
+
+    template = tmp_path / "template.xlsx"
+    wb = load_workbook(Path("Sample_Set/kb_knowledge_Template.xlsx")) if Path("Sample_Set/kb_knowledge_Template.xlsx").exists() else None
+    if wb is None:
+        import openpyxl
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.append(["Short description", QA_COLUMN_NAME])
+        ws.append(["test", ""])
+    wb.save(template)
+
+    output_file = tmp_path / "out.xlsx"
+    generate_excel(sample_df.to_dict("records"), output_file, template)
+
+    wb2 = load_workbook(output_file)
+    ws2 = wb2.active
+    qa_idx = [c.value for c in ws2[1]].index(QA_COLUMN_NAME) + 1
+    assert ws2.cell(row=2, column=qa_idx).value == "QA-1"
+
+
+def test_qa_numbers_not_written_without_column(tmp_path):
+    sample_df = pd.DataFrame([
+        {"file_name": "test.pdf", "Short description": "test", "qa_numbers": "QA-1"}
+    ])
+
+    # Create template without QA column
+    import openpyxl
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["Short description"])  # only description
+    ws.append(["test"])
+    template = tmp_path / "template_noqa.xlsx"
+    wb.save(template)
+
+    output_file = tmp_path / "out_noqa.xlsx"
+    generate_excel(sample_df.to_dict("records"), output_file, template)
+
+    wb2 = load_workbook(output_file)
+    ws2 = wb2.active
+    assert QA_COLUMN_NAME not in [c.value for c in ws2[1]]
