@@ -100,9 +100,13 @@ class ExcelWriter:
             for row in self.rows:
                 ws.append([row.get(h) for h in self.headers])
             wb.save(self.file_path)
-        except Exception:
+        except (OSError, openpyxl.utils.exceptions.InvalidFileException) as e:
+            log_error(logger, f"Failed to save Excel file: {e}")
             with open(self.file_path, "w", encoding="utf-8") as f:
                 f.write("")
+        except Exception as e:
+            log_error(logger, f"Unexpected error occurred: {e}")
+            raise
 
 
 def sanitize_for_excel(value):
