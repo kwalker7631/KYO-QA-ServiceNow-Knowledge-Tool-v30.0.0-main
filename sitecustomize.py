@@ -1,3 +1,11 @@
+# Ensure project root is in sys.path for imports
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 # Helper function to create and register mock modules
 def create_mock_module(name, attributes):
     import types, sys
