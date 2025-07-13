@@ -85,7 +85,6 @@ def generate_excel(all_results, output_path, template_path):
         
         workbook = openpyxl.load_workbook(output_path)
         worksheet = workbook.active
-
         header = [cell.value for cell in worksheet[1]]
         desc_col_idx = header.index(DESCRIPTION_COLUMN_NAME) if DESCRIPTION_COLUMN_NAME in header else -1
         meta_col_idx = header.index(META_COLUMN_NAME) if META_COLUMN_NAME in header else -1

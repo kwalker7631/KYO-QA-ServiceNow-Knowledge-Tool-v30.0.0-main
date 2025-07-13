@@ -52,7 +52,6 @@ DEFAULT_TEMPLATE_HEADERS = [
     "Needs Review",
 ]
 
-
 def test_generate_excel_headers(tmp_path):
     sample_df = pd.DataFrame([
         {"Short description": "Test", "Article body": "body"}
@@ -83,25 +82,51 @@ def test_generate_excel_with_template(tmp_path):
     sd_index = DEFAULT_TEMPLATE_HEADERS.index("Short description") + 1
     assert ws.cell(row=2, column=sd_index).value == "Test"
 
-
-def test_generate_excel_includes_qa_numbers(tmp_path):
+def test_qa_numbers_written_when_column_present(tmp_path):
     sample_df = pd.DataFrame([
         {
-            "file_name": "doc1.pdf",
-            "Short description": "doc1",
-            META_COLUMN_NAME: "Model1",
-            "qa_numbers": "QA1234",
+            "file_name": "test.pdf",
+            "Short description": "test",
+            "qa_numbers": "QA-1",
         }
     ])
-    output_file = tmp_path / "qa.xlsx"
-    template = Path("Sample_Set/kb_knowledge_Template.xlsx")
+
+    template = tmp_path / "template.xlsx"
+    wb = load_workbook(Path("Sample_Set/kb_knowledge_Template.xlsx")) if Path("Sample_Set/kb_knowledge_Template.xlsx").exists() else None
+    if wb is None:
+        import openpyxl
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.append(["Short description", QA_COLUMN_NAME])
+        ws.append(["test", ""])
+    wb.save(template)
+
+    output_file = tmp_path / "out.xlsx"
     generate_excel(sample_df.to_dict("records"), output_file, template)
-    wb = load_workbook(output_file)
+
+    wb2 = load_workbook(output_file)
+    ws2 = wb2.active
+    qa_idx = [c.value for c in ws2[1]].index(QA_COLUMN_NAME) + 1
+    assert ws2.cell(row=2, column=qa_idx).value == "QA-1"
+
+
+def test_qa_numbers_not_written_without_column(tmp_path):
+    sample_df = pd.DataFrame([
+        {"file_name": "test.pdf", "Short description": "test", "qa_numbers": "QA-1"}
+    ])
+
+    # Create template without QA column
+    import openpyxl
+    wb = openpyxl.Workbook()
     ws = wb.active
-    headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
-    if QA_NUMBERS_COLUMN_NAME in headers:
-        qa_idx = headers.index(QA_NUMBERS_COLUMN_NAME) + 1
-        assert ws.cell(row=2, column=qa_idx).value == "QA1234"
-    else:
-        meta_idx = headers.index(META_COLUMN_NAME) + 1
-        assert "QA1234" in (ws.cell(row=2, column=meta_idx).value or "")
+    ws.append(["Short description"])  # only description
+    ws.append(["test"])
+    template = tmp_path / "template_noqa.xlsx"
+    wb.save(template)
+
+    output_file = tmp_path / "out_noqa.xlsx"
+    generate_excel(sample_df.to_dict("records"), output_file, template)
+
+    wb2 = load_workbook(output_file)
+    ws2 = wb2.active
+    assert QA_COLUMN_NAME not in [c.value for c in ws2[1]]
