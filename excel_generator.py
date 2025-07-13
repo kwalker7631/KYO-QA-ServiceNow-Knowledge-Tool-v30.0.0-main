@@ -15,6 +15,9 @@ from config import META_COLUMN_NAME, AUTHOR_COLUMN_NAME, DESCRIPTION_COLUMN_NAME
 
 logger = setup_logger("excel_generator")
 
+# Columns that may hold extracted QA numbers
+QA_COLUMN_CANDIDATES = ["QA Numbers", "QA Number", "Ticket#", "Problem Code"]
+
 ILLEGAL_CHARACTERS_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 
 # --- Style Definitions - Restored to match original flair ---
@@ -86,6 +89,12 @@ def generate_excel(all_results, output_path, template_path):
         meta_col_idx = header.index(META_COLUMN_NAME) if META_COLUMN_NAME in header else -1
         author_col_idx = header.index(AUTHOR_COLUMN_NAME) if AUTHOR_COLUMN_NAME in header else -1
 
+        qa_col_idx = -1
+        for candidate in QA_COLUMN_CANDIDATES:
+            if candidate in header:
+                qa_col_idx = header.index(candidate)
+                break
+
         if desc_col_idx == -1:
             raise ExcelGenerationError(f"Template missing required column: '{DESCRIPTION_COLUMN_NAME}'")
 
@@ -101,6 +110,8 @@ def generate_excel(all_results, output_path, template_path):
                     worksheet.cell(row=row_num, column=meta_col_idx + 1).value = new_row_data[META_COLUMN_NAME]
                 if author_col_idx != -1 and AUTHOR_COLUMN_NAME in new_row_data:
                     worksheet.cell(row=row_num, column=author_col_idx + 1).value = new_row_data[AUTHOR_COLUMN_NAME]
+                if qa_col_idx != -1 and 'qa_numbers' in new_row_data:
+                    worksheet.cell(row=row_num, column=qa_col_idx + 1).value = new_row_data['qa_numbers']
                 
                 if fill := STATUS_FILLS.get(new_row_data['processing_status']):
                     for cell in row_cells:

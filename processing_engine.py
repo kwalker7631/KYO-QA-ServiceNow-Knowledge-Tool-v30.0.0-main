@@ -52,6 +52,7 @@ def process_single_pdf(pdf_path: Path, progress_queue, ignore_cache: bool = Fals
         "file_name": filename,
         META_COLUMN_NAME: "",
         AUTHOR_COLUMN_NAME: "",
+        "qa_numbers": "",
         "processing_status": "Failed",
         "failure_reason": "",
         "ocr_used": False,
@@ -74,6 +75,7 @@ def process_single_pdf(pdf_path: Path, progress_queue, ignore_cache: bool = Fals
             data = harvest_all_data(text, filename)
             result[META_COLUMN_NAME] = data["models"]
             result[AUTHOR_COLUMN_NAME] = data["author"]
+            result["qa_numbers"] = data.get("qa_numbers", "")
 
             if result[META_COLUMN_NAME] == "Not Found":
                 result["processing_status"] = "Needs Review"
