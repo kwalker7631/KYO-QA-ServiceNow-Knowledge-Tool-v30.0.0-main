@@ -401,4 +401,9 @@ class KyoQAToolApp(tk.Tk):
         self.start_processing(job={"excel_path": self.result_file_path, "input_path": files_to_rerun, "is_rerun": True})
 
 if __name__ == '__main__':
-    messagebox.showinfo("Launcher", "This script is not meant to be run directly.\nPlease use the 'run.py' script to launch the application.")
+    try:
+        app = KyoQAToolApp()
+        app.mainloop()
+    except tk.TclError as exc:  # pragma: no cover - display may be unavailable
+        print("No GUI display available - application cannot start.", file=sys.stderr)
+        print(exc)
