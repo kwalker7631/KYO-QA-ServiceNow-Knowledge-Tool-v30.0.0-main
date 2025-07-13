@@ -1,5 +1,8 @@
 # kyo_qa_tool_app.py - Definitive fix for UI feedback and review process logic.
 
+import logging
+logging.getLogger(__name__).setLevel(logging.DEBUG)
+
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from pathlib import Path
@@ -25,27 +28,81 @@ DEFAULT_BRAND_COLORS = {
 }
 for k, v in DEFAULT_BRAND_COLORS.items():
     BRAND_COLORS.setdefault(k, v)
-from processing_engine import run_processing_job
-from file_utils import open_file, ensure_folders, cleanup_temp_files
-from kyo_review_tool import ReviewWindow
-from version import VERSION
-import logging_utils
 try:
-    from gui_components import (
+    from .processing_engine import run_processing_job
+except Exception:  # pragma: no cover
+    from processing_engine import run_processing_job
+try:
+    from .file_utils import open_file, ensure_folders, cleanup_temp_files
+except Exception:  # pragma: no cover
+    from file_utils import open_file, ensure_folders, cleanup_temp_files
+try:
+    from .kyo_review_tool import ReviewWindow
+except Exception:  # pragma: no cover
+    from kyo_review_tool import ReviewWindow
+try:
+    from .version import VERSION
+except Exception:  # pragma: no cover
+    from version import VERSION
+try:
+    from . import logging_utils
+except Exception:  # pragma: no cover
+    import logging_utils
+try:
+    from .branding import KyoceraColors
+except Exception:  # pragma: no cover - fallback when running as script
+    from branding import KyoceraColors
+try:
+    from .gui_components import (
+        setup_high_contrast_styles,
         create_main_header,
         create_io_section,
-        create_process_controls,
-        create_status_and_log_section,
+        create_controls_section,
+        create_live_status_section,
+        create_footer,
+        create_review_tab,
+        create_harvest_tab,
+        create_data_harvest_tab,
     )
 except Exception:  # pragma: no cover - allow tests to stub
-    from gui_components import (
-        create_main_header,
-        create_io_section,
-        create_process_controls,
-    )
+    try:
+        from gui_components import (
+            setup_high_contrast_styles,
+            create_main_header,
+            create_io_section,
+            create_controls_section,
+            create_live_status_section,
+            create_footer,
+            create_review_tab,
+            create_harvest_tab,
+            create_data_harvest_tab,
+        )
+    except Exception:
+        from gui_components import (
+            create_main_header,
+            create_io_section,
+            create_process_controls as create_controls_section,
+            create_status_and_log_section as create_live_status_section,
+        )
 
-    def create_status_and_log_section(*_a, **_k):
-        return None, None
+        def setup_high_contrast_styles(*_a, **_k):
+            pass
+
+        def create_footer(*_a, **_k):
+            pass
+
+        def create_review_tab(*_a, **_k):
+            return None
+
+        def create_harvest_tab(*_a, **_k):
+            return None
+
+        def create_data_harvest_tab(*_a, **_k):
+            return None
+
+# Compatibility aliases for older function names
+create_process_controls = create_controls_section
+create_status_and_log_section = create_live_status_section
 
 logger = logging_utils.setup_logger("app")
 
@@ -131,8 +188,8 @@ class KyoQAToolApp(tk.Tk):
         main_frame.grid(row=1, column=0, sticky="nsew")
         main_frame.columnconfigure(0, weight=1); main_frame.rowconfigure(2, weight=1)
         create_io_section(main_frame, self)
-        create_process_controls(main_frame, self)
-        create_status_and_log_section(main_frame, self)
+        create_controls_section(main_frame, self)
+        create_live_status_section(main_frame, self)
 
     def start_processing(self, job=None, is_rerun=False):
         if self.is_processing: return

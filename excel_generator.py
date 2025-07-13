@@ -1,5 +1,7 @@
 # excel_generator.py - Definitive version with true cloning, styling, and robust data handling.
 # This version correctly preserves all data from the original template.
+import logging
+logging.getLogger(__name__).setLevel(logging.DEBUG)
 
 try:
     import pandas as pd
@@ -25,12 +27,32 @@ import shutil
 
 from logging_utils import setup_logger, log_info, log_warning, log_error
 from custom_exceptions import ExcelGenerationError
-from config import (
-    META_COLUMN_NAME,
-    AUTHOR_COLUMN_NAME,
-    DESCRIPTION_COLUMN_NAME,
-    QA_NUMBERS_COLUMN_NAME,
-)
+import importlib, sys
+
+try:
+    from config import (
+        META_COLUMN_NAME,
+        AUTHOR_COLUMN_NAME,
+        DESCRIPTION_COLUMN_NAME,
+        QA_NUMBERS_COLUMN_NAME,
+        STATUS_COLUMN_NAME,
+    )
+except Exception:  # pragma: no cover - allow stubs in tests
+    _cfg = importlib.import_module('config')
+    META_COLUMN_NAME = getattr(_cfg, 'META_COLUMN_NAME', 'Meta')
+    AUTHOR_COLUMN_NAME = getattr(_cfg, 'AUTHOR_COLUMN_NAME', 'Author')
+    DESCRIPTION_COLUMN_NAME = getattr(_cfg, 'DESCRIPTION_COLUMN_NAME', 'Short description')
+    QA_NUMBERS_COLUMN_NAME = getattr(_cfg, 'QA_NUMBERS_COLUMN_NAME', 'QA Numbers')
+    STATUS_COLUMN_NAME = getattr(_cfg, 'STATUS_COLUMN_NAME', 'Processing Status')
+    for n, v in (
+        ('META_COLUMN_NAME', META_COLUMN_NAME),
+        ('AUTHOR_COLUMN_NAME', AUTHOR_COLUMN_NAME),
+        ('DESCRIPTION_COLUMN_NAME', DESCRIPTION_COLUMN_NAME),
+        ('QA_NUMBERS_COLUMN_NAME', QA_NUMBERS_COLUMN_NAME),
+        ('STATUS_COLUMN_NAME', STATUS_COLUMN_NAME),
+    ):
+        setattr(_cfg, n, v)
+    sys.modules['config'] = _cfg
 
 logger = setup_logger("excel_generator")
 
@@ -167,7 +189,8 @@ def generate_excel(all_results, output_path, template_path=Path("Sample_Set/kb_k
             )
 
         new_data_df = pd.DataFrame(all_results).applymap(sanitize_for_excel)
-        if 'qa_numbers' in new_data_df.columns and QA_NUMBERS_COLUMN_NAME not in new_data_df.columns:
+        cols = getattr(new_data_df, 'columns', [])
+        if 'qa_numbers' in cols and QA_NUMBERS_COLUMN_NAME not in cols:
             new_data_df.rename(columns={'qa_numbers': QA_NUMBERS_COLUMN_NAME}, inplace=True)
         new_data_df['merge_key'] = new_data_df['file_name'].apply(lambda x: Path(x).stem)
         new_data_df.set_index('merge_key', inplace=True)
@@ -236,5 +259,5 @@ def generate_excel(all_results, output_path, template_path=Path("Sample_Set/kb_k
         return str(output_path)
 
     except Exception as e:
-        log_error(logger, f"Excel generation failed: {e}", exc_info=True)
+        log_error(logger, f"Excel generation failed: {e}")
         raise ExcelGenerationError(f"Failed to generate Excel file: {e}")
