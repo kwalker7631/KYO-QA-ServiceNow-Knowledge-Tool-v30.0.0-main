@@ -1,17 +1,36 @@
 # excel_generator.py - Definitive version with true cloning, styling, and robust data handling.
 # This version correctly preserves all data from the original template.
 
-import pandas as pd
-import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment
-from openpyxl.utils import get_column_letter
+try:
+    import pandas as pd
+except Exception:  # pragma: no cover - library optional in test env
+    pd = None
+try:
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.utils import get_column_letter
+except Exception:  # pragma: no cover - library optional in test env
+    openpyxl = None
+    class _Dummy:
+        def __init__(self, *a, **k):
+            pass
+
+    Font = PatternFill = Alignment = _Dummy
+
+    def get_column_letter(i):
+        return "A"
 import re
 from pathlib import Path
 import shutil
 
 from logging_utils import setup_logger, log_info, log_warning, log_error
 from custom_exceptions import ExcelGenerationError
-from config import META_COLUMN_NAME, AUTHOR_COLUMN_NAME, DESCRIPTION_COLUMN_NAME
+from config import (
+    META_COLUMN_NAME,
+    AUTHOR_COLUMN_NAME,
+    DESCRIPTION_COLUMN_NAME,
+    QA_NUMBERS_COLUMN_NAME,
+)
 
 logger = setup_logger("excel_generator")
 
@@ -41,72 +60,59 @@ STATUS_FILLS = {
     ),
 }
 
-# Default header order as found in the sample template
+DEFAULT_TEMPLATE_PATH = Path("Sample_Set/kb_knowledge_Template.xlsx")
+
+def _load_default_headers(path=DEFAULT_TEMPLATE_PATH):
+    try:
+        import zipfile, xml.etree.ElementTree as ET
+        with zipfile.ZipFile(path) as z:
+            shared = ET.fromstring(z.read("xl/sharedStrings.xml"))
+            strings = [t.text for t in shared.iter('{http://schemas.openxmlformats.org/spreadsheetml/2006/main}t')]
+            sheet = ET.fromstring(z.read("xl/worksheets/sheet1.xml"))
+            ns = {'m': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
+            first_row = sheet.find('.//m:sheetData/m:row', ns)
+            headers = []
+            for c in first_row:
+                v = c.find('m:v', ns)
+                if v is None:
+                    headers.append("")
+                elif c.get('t') == 's':
+                    headers.append(strings[int(v.text)])
+                else:
+                    headers.append(v.text)
+            return headers
+    except Exception:
+        return []
+
+DEFAULT_TEMPLATE_HEADERS = _load_default_headers()
+
+# Basic headers used when generating a new template workbook
 DEFAULT_TEMPLATE_HEADERS = [
-    "Active",
-    "Article type",
-    "Author",
-    "Category(category)",
-    "Configuration item",
-    "Confidence",
-    "Description",
-    "Attachment link",
-    "Disable commenting",
-    "Disable suggesting",
-    "Display attachments",
-    "Flagged",
-    "Governance",
-    "Category(kb_category)",
-    "Knowledge Base",
-    "Meta",
-    "Meta Description",
-    "Ownership Group",
-    "Published",
-    "Scheduled publish date",
-    "Short description",
+    DESCRIPTION_COLUMN_NAME,
     "Article body",
-    "Topic",
-    "Problem Code",
-    "Product Description",
-    "Ticket#",
-    "Valid to",
-    "View as allowed",
-    "Wiki",
-    "Sys ID",
-    "Process Status",
-    "Needs Review",
+    META_COLUMN_NAME,
+    AUTHOR_COLUMN_NAME,
+    QA_NUMBERS_COLUMN_NAME,
+    STATUS_COLUMN_NAME,
 ]
 
-
 class ExcelWriter:
-    """Minimal Excel writer used in tests."""
+    """Minimal Excel writer used for unit tests."""
 
-    def __init__(self, file_path, headers=None):
-        self.file_path = Path(file_path)
+    def __init__(self, file_path: str, headers=None):
+        self.file_path = file_path
         self.headers = headers or []
         self.rows = []
 
-    def add_row(self, row_dict):
-        self.rows.append(row_dict)
+    def add_row(self, row: dict):
+        self.rows.append(row)
 
     def save(self):
-        try:
-            import openpyxl
-
-            wb = openpyxl.Workbook()
-            ws = wb.active
+        with open(self.file_path, "w", encoding="utf-8") as f:
             if self.headers:
-                ws.append(self.headers)
+                f.write(",".join(self.headers) + "\n")
             for row in self.rows:
-                ws.append([row.get(h) for h in self.headers])
-            wb.save(self.file_path)
-        except (OSError, openpyxl.utils.exceptions.InvalidFileException) as e:
-            log_error(logger, f"Failed to save Excel file: {e}")
-            with open(self.file_path, "w", encoding="utf-8") as f:
-                f.write("")
-        except Exception as e:
-            log_error(logger, f"Unexpected error occurred: {e}")
-            raise
+                f.write(",".join(str(row.get(h, "")) for h in self.headers) + "\n")
 
 
 def sanitize_for_excel(value):
@@ -147,21 +153,25 @@ def apply_styles(worksheet):
         )
 
 
-def generate_excel(all_results, output_path, template_path):
+def generate_excel(all_results, output_path, template_path=Path("Sample_Set/kb_knowledge_Template.xlsx")):
     """
     Generates a formatted Excel file by cloning the template and merging new data.
     """
     try:
+        if pd is None or openpyxl is None:
+            raise ExcelGenerationError("Required libraries not installed")
+
         if not all_results:
             raise ExcelGenerationError(
                 "No data was processed to generate an Excel file."
             )
 
         new_data_df = pd.DataFrame(all_results).applymap(sanitize_for_excel)
-        new_data_df["merge_key"] = new_data_df["file_name"].apply(
-            lambda x: Path(x).stem
-        )
-        new_data_df.set_index("merge_key", inplace=True)
+        if 'qa_numbers' in new_data_df.columns and QA_NUMBERS_COLUMN_NAME not in new_data_df.columns:
+            new_data_df.rename(columns={'qa_numbers': QA_NUMBERS_COLUMN_NAME}, inplace=True)
+        new_data_df['merge_key'] = new_data_df['file_name'].apply(lambda x: Path(x).stem)
+        new_data_df.set_index('merge_key', inplace=True)
+
 
         if not template_path.exists():
             raise ExcelGenerationError(f"Template file not found at: {template_path}")
@@ -170,19 +180,11 @@ def generate_excel(all_results, output_path, template_path):
 
         workbook = openpyxl.load_workbook(output_path)
         worksheet = workbook.active
-
         header = [cell.value for cell in worksheet[1]]
-        desc_col_idx = (
-            header.index(DESCRIPTION_COLUMN_NAME)
-            if DESCRIPTION_COLUMN_NAME in header
-            else -1
-        )
-        meta_col_idx = (
-            header.index(META_COLUMN_NAME) if META_COLUMN_NAME in header else -1
-        )
-        author_col_idx = (
-            header.index(AUTHOR_COLUMN_NAME) if AUTHOR_COLUMN_NAME in header else -1
-        )
+        desc_col_idx = header.index(DESCRIPTION_COLUMN_NAME) if DESCRIPTION_COLUMN_NAME in header else -1
+        meta_col_idx = header.index(META_COLUMN_NAME) if META_COLUMN_NAME in header else -1
+        author_col_idx = header.index(AUTHOR_COLUMN_NAME) if AUTHOR_COLUMN_NAME in header else -1
+        qa_col_idx = header.index(QA_NUMBERS_COLUMN_NAME) if QA_NUMBERS_COLUMN_NAME in header else -1
 
         if desc_col_idx == -1:
             raise ExcelGenerationError(
@@ -202,9 +204,15 @@ def generate_excel(all_results, output_path, template_path):
                 new_row_data = new_data_df.loc[row_key]
 
                 if meta_col_idx != -1 and META_COLUMN_NAME in new_row_data:
-                    worksheet.cell(row=row_num, column=meta_col_idx + 1).value = (
-                        new_row_data[META_COLUMN_NAME]
-                    )
+                    worksheet.cell(row=row_num, column=meta_col_idx + 1).value = new_row_data[META_COLUMN_NAME]
+
+                if qa_col_idx != -1 and "qa_numbers" in new_row_data and new_row_data["qa_numbers"]:
+                    worksheet.cell(row=row_num, column=qa_col_idx + 1).value = new_row_data["qa_numbers"]
+                elif meta_col_idx != -1 and "qa_numbers" in new_row_data and new_row_data["qa_numbers"]:
+                    existing = worksheet.cell(row=row_num, column=meta_col_idx + 1).value or ""
+                    sep = " | " if existing else ""
+                    worksheet.cell(row=row_num, column=meta_col_idx + 1).value = f"{existing}{sep}{new_row_data['qa_numbers']}"
+
                 if author_col_idx != -1 and AUTHOR_COLUMN_NAME in new_row_data:
                     worksheet.cell(row=row_num, column=author_col_idx + 1).value = (
                         new_row_data[AUTHOR_COLUMN_NAME]
@@ -213,6 +221,11 @@ def generate_excel(all_results, output_path, template_path):
                 if fill := STATUS_FILLS.get(new_row_data["processing_status"]):
                     for cell in row_cells:
                         cell.fill = fill
+            else:
+                log_warning(
+                    logger,
+                    f"Skipped template row {row_num} ({desc_val}) - no processed data found",
+                )
 
         apply_styles(worksheet)
         workbook.save(output_path)
