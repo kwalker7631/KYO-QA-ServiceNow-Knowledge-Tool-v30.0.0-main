@@ -50,6 +50,32 @@ STATUS_FILLS = {
     "No Text Found": PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"),
 }
 
+DEFAULT_TEMPLATE_PATH = Path("Sample_Set/kb_knowledge_Template.xlsx")
+
+def _load_default_headers(path=DEFAULT_TEMPLATE_PATH):
+    try:
+        import zipfile, xml.etree.ElementTree as ET
+        with zipfile.ZipFile(path) as z:
+            shared = ET.fromstring(z.read("xl/sharedStrings.xml"))
+            strings = [t.text for t in shared.iter('{http://schemas.openxmlformats.org/spreadsheetml/2006/main}t')]
+            sheet = ET.fromstring(z.read("xl/worksheets/sheet1.xml"))
+            ns = {'m': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
+            first_row = sheet.find('.//m:sheetData/m:row', ns)
+            headers = []
+            for c in first_row:
+                v = c.find('m:v', ns)
+                if v is None:
+                    headers.append("")
+                elif c.get('t') == 's':
+                    headers.append(strings[int(v.text)])
+                else:
+                    headers.append(v.text)
+            return headers
+    except Exception:
+        return []
+
+DEFAULT_TEMPLATE_HEADERS = _load_default_headers()
+
 # Basic headers used when generating a new template workbook
 DEFAULT_TEMPLATE_HEADERS = [
     DESCRIPTION_COLUMN_NAME,
