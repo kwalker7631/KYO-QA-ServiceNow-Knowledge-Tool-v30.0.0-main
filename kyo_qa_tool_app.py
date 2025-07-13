@@ -405,5 +405,5 @@ if __name__ == '__main__':
         app = KyoQAToolApp()
         app.mainloop()
     except tk.TclError as exc:  # pragma: no cover - display may be unavailable
-        print("No GUI display available - application cannot start.")
+        print("No GUI display available - application cannot start.", file=sys.stderr)
         print(exc)
