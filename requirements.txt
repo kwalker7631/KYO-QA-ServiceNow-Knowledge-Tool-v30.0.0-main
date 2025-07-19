@@ -18,3 +18,4 @@ ollama>=0.3.3
 ## Utilities
 colorama>=0.4.6
 python-dateutil>=2.9.0
+pywebview>=4.2
