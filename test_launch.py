@@ -24,7 +24,8 @@ def test_launch_main_starts_webview(monkeypatch):
     calls = []
 
     def create_window(*a, **k):
-        calls.append(k.get("url", a[1] if len(a) > 1 else ""))
+        fallback_url = a[1] if len(a) > 1 else ""
+        calls.append(k.get("url", fallback_url))
 
     stub_webview = types.SimpleNamespace(
         create_window=create_window,
