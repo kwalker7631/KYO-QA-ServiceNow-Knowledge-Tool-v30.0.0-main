@@ -7,8 +7,8 @@
   <body>
     <h1>QA Tool</h1>
     <form id="jobForm">
-      <label>Excel: <input type="file" name="excel" accept=".xlsx,.xlsm" required></label><br>
-      <label>PDFs: <input type="file" name="pdfs[]" accept="application/pdf" multiple required></label><br>
+      <label for="excelInput">Excel:</label> <input id="excelInput" type="file" name="excel" accept=".xlsx,.xlsm" required><br>
+      <label for="pdfsInput">PDFs:</label> <input id="pdfsInput" type="file" name="pdfs[]" accept="application/pdf" multiple required><br>
       <button type="submit">Start Processing</button>
     </form>
     <div id="status"></div>
