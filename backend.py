@@ -31,7 +31,10 @@ def process_job(excel_path: str, pdf_paths: list[str], *, is_rerun: bool = False
 
     final: dict = {}
     while True:  # Consume progress messages until the job finishes
-        msg = q.get()
+        try:
+            msg = q.get(timeout=10)  # Add a timeout to prevent indefinite blocking
+        except queue.Empty:
+            raise RuntimeError("Timeout waiting for job to finish. No message received.")
         if msg.get("type") == "finish":
             final["status"] = msg.get("status")
             final["results"] = msg.get("results", [])
