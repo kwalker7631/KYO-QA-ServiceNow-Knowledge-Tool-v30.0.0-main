@@ -46,7 +46,7 @@ def test_process_job_passes_job_info(monkeypatch):
 
 def test_process_job_timeout(monkeypatch):
     def fake_run_processing_job(job, q):
-        pass  # never puts anything
+        pass  # Simulate a job that never completes by not putting any messages in the queue
 
     monkeypatch.setattr(backend, "run_processing_job", fake_run_processing_job)
     # Patch Queue.get to immediately raise queue.Empty to simulate timeout
