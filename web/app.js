@@ -16,8 +16,13 @@ document.getElementById("jobForm")
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = e.target.excel.files[0].name;
-      a.textContent = `Download ${a.download}`;
+      if (e.target.excel && e.target.excel.files && e.target.excel.files.length > 0) {
+        a.download = e.target.excel.files[0].name;
+        a.textContent = `Download ${a.download}`;
+      } else {
+        status.textContent = "Error: No file selected.";
+        return;
+      }
       status.innerHTML = "";
       status.appendChild(a);
     } catch (err) {
