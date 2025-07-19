@@ -3,6 +3,7 @@
 import tempfile
 import shutil
 from queue import Queue
+import queue
 
 from processing_engine import run_processing_job
 

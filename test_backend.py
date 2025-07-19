@@ -1,5 +1,7 @@
 import types
 import sys
+import pytest
+import queue
 
 # Provide stub module before importing backend
 pe_stub = types.ModuleType('processing_engine')
@@ -41,3 +43,16 @@ def test_process_job_passes_job_info(monkeypatch):
         "input_path": ["file1.pdf", "file2.pdf"],
         "is_rerun": True,
     }
+
+def test_process_job_timeout(monkeypatch):
+    def fake_run_processing_job(job, q):
+        pass  # never puts anything
+
+    monkeypatch.setattr(backend, "run_processing_job", fake_run_processing_job)
+    # Patch Queue.get to immediately raise queue.Empty to simulate timeout
+    class DummyQueue(queue.Queue):
+        def get(self, timeout=None):
+            raise queue.Empty
+    monkeypatch.setattr(backend, "Queue", DummyQueue)
+    with pytest.raises(RuntimeError):
+        backend.process_job("t.xlsx", ["a.pdf"])
