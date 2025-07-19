@@ -10,7 +10,12 @@ def process_job(excel_path: str, pdf_paths: list[str], is_rerun: bool = False) -
     run_processing_job(job, q)
     final = {}
     while True:
-        msg = q.get()
+        try:
+            msg = q.get(timeout=10)  # Timeout after 10 seconds
+        except queue.Empty:
+            raise TimeoutError("Processing job timed out waiting for a 'finish' message.")
+        except Exception as e:
+            raise RuntimeError(f"An error occurred while processing the job: {e}")
         if msg.get("type") == "finish":
             final["status"] = msg.get("status")
             final["results"] = msg.get("results", [])
