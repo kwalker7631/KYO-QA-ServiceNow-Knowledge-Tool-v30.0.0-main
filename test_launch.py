@@ -18,7 +18,8 @@ def test_launch_app():
 
 
 def test_launch_main_starts_webview(monkeypatch):
-    import importlib, sys
+    import importlib
+    import sys
 
     calls = []
 
