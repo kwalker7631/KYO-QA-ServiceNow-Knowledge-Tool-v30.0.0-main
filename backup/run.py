@@ -70,7 +70,6 @@ def launch_main_application():
     print("🚀 Launching KYO QA Knowledge Tool...")
     try:
         # We import the main app here, after all checks have passed.
-        from kyo_qa_tool_app import KyoQAToolApp
         app = KyoQAToolApp()
         app.mainloop()
     except Exception as e:

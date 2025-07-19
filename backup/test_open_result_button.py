@@ -13,7 +13,6 @@ sys.modules.setdefault('version', types.SimpleNamespace(VERSION='1.0'))
 sys.modules.setdefault('logging_utils', types.SimpleNamespace(setup_logger=lambda name: None))
 sys.modules.setdefault('gui_components', types.SimpleNamespace(create_main_header=lambda *a, **k: None, create_io_section=lambda *a, **k: None, create_process_controls=lambda *a, **k: None))
 
-from kyo_qa_tool_app import KyoQAToolApp
 
 class DummyVar:
     def __init__(self):

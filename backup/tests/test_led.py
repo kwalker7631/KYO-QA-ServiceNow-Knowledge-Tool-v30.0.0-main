@@ -5,7 +5,6 @@ import sys
 sys.modules['processing_engine'] = types.ModuleType('processing_engine')
 sys.modules['processing_engine'].run_processing_job = lambda *a, **kw: None
 
-from kyo_qa_tool_app import KyoQAToolApp
 from config import BRAND_COLORS
 
 class DummyVar:

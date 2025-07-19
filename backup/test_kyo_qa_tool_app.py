@@ -19,7 +19,6 @@ def run_processing_job(job, queue, cancel_event, pause_event):
 processing_engine_stub.run_processing_job = run_processing_job
 sys.modules.setdefault("processing_engine", processing_engine_stub)
 
-from kyo_qa_tool_app import KyoQAToolApp
 
 class DummyVar:
     def __init__(self, value=0):
