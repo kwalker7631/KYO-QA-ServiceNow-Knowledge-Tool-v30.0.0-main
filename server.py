@@ -19,7 +19,12 @@ def api_process():
     excel = request.files.get("excel")
     pdfs = request.files.getlist("pdfs[]")
     if not excel or not pdfs:
-        return abort(400, "Missing excel or pdfs[]")
+        missing_fields = []
+        if not excel:
+            missing_fields.append("excel file")
+        if not pdfs:
+            missing_fields.append("pdfs[] array")
+        return abort(400, f"Required fields missing: {', '.join(missing_fields)}. Ensure you upload an 'excel' file and a 'pdfs[]' array.")
 
     workdir = tempfile.mkdtemp(prefix="qa_tool_")
     try:
