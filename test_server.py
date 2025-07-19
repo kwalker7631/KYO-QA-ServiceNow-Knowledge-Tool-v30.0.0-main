@@ -30,3 +30,12 @@ def test_api_process(monkeypatch):
     assert resp.data == b"excel"
 
 
+
+
+def test_index_page():
+    client = server.app.test_client()
+    resp = client.get("/")
+    assert resp.status_code == 200
+    text = resp.get_data(as_text=True)
+    assert "QA Tool" in text
+    assert "app.js" in text
