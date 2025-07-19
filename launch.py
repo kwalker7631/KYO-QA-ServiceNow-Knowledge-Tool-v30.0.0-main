@@ -21,9 +21,10 @@ def main():
     time.sleep(1)
 
     # Open the local web app in a native window.
+    server_url = os.getenv("SERVER_URL", "http://127.0.0.1:5000")
     webview.create_window(
         "KYO QA Tool",
-        "http://127.0.0.1:5000",
+        server_url,
         width=1200,
         height=900,
     )
