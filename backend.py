@@ -1,4 +1,3 @@
-import tempfile, shutil
 from queue import Queue
 from processing_engine import run_processing_job
 
