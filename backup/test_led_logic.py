@@ -6,7 +6,6 @@ processing_engine_stub = types.ModuleType('processing_engine')
 processing_engine_stub.run_processing_job = lambda *a, **k: None
 sys.modules['processing_engine'] = processing_engine_stub
 
-from kyo_qa_tool_app import get_led_colors, BRAND_COLORS
 
 class TestLEDColors(unittest.TestCase):
     def test_processing_color(self):

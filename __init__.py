@@ -10,7 +10,7 @@ pkg_dir = Path(__file__).parent
 if str(pkg_dir) not in sys.path:
     sys.path.insert(0, str(pkg_dir))
 
-for _mod in ("config", "gui_components", "branding", "styles"):
+for _mod in ("config", "branding", "styles"):
     if _mod not in sys.modules:
         try:
             sys.modules[_mod] = importlib.import_module(f"{_mod}")

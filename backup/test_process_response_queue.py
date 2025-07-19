@@ -3,7 +3,6 @@ from types import MethodType, ModuleType
 import tkinter as tk
 import sys
 
-# Provide dummy openpyxl modules so kyo_qa_tool_app imports without dependencies
 sys.modules.setdefault("openpyxl", ModuleType("openpyxl"))
 styles_mod = sys.modules.setdefault("openpyxl.styles", ModuleType("openpyxl.styles"))
 utils_mod = sys.modules.setdefault("openpyxl.utils", ModuleType("openpyxl.utils"))
@@ -18,7 +17,6 @@ sys.modules.setdefault("cv2", ModuleType("cv2"))
 sys.modules.setdefault("numpy", ModuleType("numpy"))
 sys.modules.setdefault("pikepdf", ModuleType("pikepdf"))
 
-from kyo_qa_tool_app import KyoQAToolApp
 
 class DummyBtn:
     def __init__(self):
