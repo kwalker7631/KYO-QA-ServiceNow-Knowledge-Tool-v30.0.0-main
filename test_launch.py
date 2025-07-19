@@ -23,8 +23,12 @@ def test_launch_main_starts_webview(monkeypatch):
 
     calls = []
 
+    def create_window(*a, **k):
+        fallback_url = a[1] if len(a) > 1 else ""
+        calls.append(k.get("url", fallback_url))
+
     stub_webview = types.SimpleNamespace(
-        create_window=lambda *a, **k: calls.append("window"),
+        create_window=create_window,
         start=lambda: calls.append("webview"),
     )
     monkeypatch.setitem(sys.modules, "webview", stub_webview)
@@ -47,9 +51,10 @@ def test_launch_main_starts_webview(monkeypatch):
     monkeypatch.setattr(launch, "time", types.SimpleNamespace(sleep=lambda x: None))
     monkeypatch.setattr(launch.subprocess, "run", lambda *a, **k: calls.append("run"))
 
+    monkeypatch.setenv("SERVER_URL", "http://example.com")
     launch.main()
 
     assert "run" in calls
-    assert "window" in calls
+    assert "http://example.com" in calls
     assert "webview" in calls
 
